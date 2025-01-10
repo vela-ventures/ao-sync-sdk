@@ -196,7 +196,7 @@ class WalletClient {
 
       this.publishMessage(
         topic,
-        { action, ...payload },
+        { action, correlationData, ...payload },
         {
           properties: {
             correlationData: Buffer.from(correlationData, 'utf-8'),
