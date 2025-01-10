@@ -2,8 +2,14 @@ import mqtt, { IClientOptions, IPublishPacket, MqttClient } from 'mqtt';
 import { v4 as uuidv4 } from 'uuid';
 import QRCode from 'qrcode';
 import { Buffer } from 'buffer';
-import type Transaction from "arweave/web/lib/transaction";
-import type { PermissionType, AppInfo, GatewayConfig, DispatchResult, DataItem } from "arconnect";
+import type Transaction from 'arweave/web/lib/transaction';
+import type {
+  PermissionType,
+  AppInfo,
+  GatewayConfig,
+  DispatchResult,
+  DataItem,
+} from 'arconnect';
 
 interface WalletResponse {
   action: string;
@@ -28,7 +34,7 @@ class WalletClient {
 
   constructor(responseTimeoutMs = 100000) {
     this.client = null;
-    this.uid = uuidv4();
+    this.uid = 'c6767f5c-6aca-47e8-abb8-461384891d3c';
     this.qrCode = null;
     this.modal = null;
     this.responseListeners = new Map();
@@ -61,7 +67,10 @@ class WalletClient {
     this.modal = modal;
   }
 
-  private createModalContent(qrCodeData: string, styles?: ModalStyles): HTMLDivElement {
+  private createModalContent(
+    qrCodeData: string,
+    styles?: ModalStyles
+  ): HTMLDivElement {
     const content = document.createElement('div');
     Object.assign(content.style, {
       backgroundColor: '#fff',
@@ -88,7 +97,7 @@ class WalletClient {
     });
 
     const closeButton = this.createCloseButton();
-    
+
     content.append(text, qrImg, closeButton);
     return content;
   }
@@ -118,12 +127,16 @@ class WalletClient {
     }
   }
 
-  private async handleMQTTMessage(topic: string, message: Buffer, packet: IPublishPacket): Promise<void> {
+  private async handleMQTTMessage(
+    topic: string,
+    message: Buffer,
+    packet: IPublishPacket
+  ): Promise<void> {
     const responseChannel = `${this.uid}/response`;
     if (topic !== responseChannel) return;
 
     const messageData = JSON.parse(message.toString()) as WalletResponse;
-    
+
     if (messageData.action === 'connect') {
       await this.handleConnectResponse(packet);
     }
@@ -154,18 +167,22 @@ class WalletClient {
     await this.publishMessage(topic, message, publishOptions);
   }
 
-  private async publishMessage(topic: string, message: any, options: mqtt.IClientPublishOptions = {}): Promise<void> {
+  private async publishMessage(
+    topic: string,
+    message: any,
+    options: mqtt.IClientPublishOptions = {}
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.client?.publish(
-        topic,
-        JSON.stringify(message),
-        options,
-        (err) => err ? reject(err) : resolve()
+      this.client?.publish(topic, JSON.stringify(message), options, (err) =>
+        err ? reject(err) : resolve()
       );
     });
   }
 
-  private createResponsePromise<T>(action: string, payload: any = {}): Promise<T> {
+  private createResponsePromise<T>(
+    action: string,
+    payload: any = {}
+  ): Promise<T> {
     const correlationData = uuidv4();
     const topic = this.uid;
 
@@ -214,7 +231,7 @@ class WalletClient {
     return new Promise((resolve, reject) => {
       this.client!.on('connect', async () => {
         try {
-          console.log('connected broker subing to ' + responseChannel)
+          console.log('connected broker subing to ' + responseChannel);
           await new Promise<void>((res, rej) => {
             this.client!.subscribe(responseChannel, (err) => {
               err ? rej(err) : res();
@@ -222,7 +239,7 @@ class WalletClient {
           });
 
           this.client!.on('message', this.handleMQTTMessage.bind(this));
-          
+
           const qrCodeData = await QRCode.toDataURL('aosync=' + this.uid);
           this.createModal(qrCodeData);
           resolve();
@@ -255,8 +272,49 @@ class WalletClient {
     return this.createResponsePromise('getActiveAddress');
   }
 
+  public async getAllAddresses(): Promise<string[]> {
+    return this.createResponsePromise('getAllAddresses');
+  }
+
   public async getPermissions(): Promise<PermissionType[]> {
     return this.createResponsePromise('getPermissions');
+  }
+
+  public async getWalletNames(): Promise<{ [addr: string]: string }> {
+    return this.createResponsePromise('getWalletNames');
+  }
+
+  public async encrypt(
+    data: BufferSource,
+    algorithm: RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams
+  ): Promise<Uint8Array> {
+    return this.createResponsePromise('encrypt', { data, algorithm });
+  }
+
+  public async decrypt(
+    data: BufferSource,
+    algorithm: RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams
+  ): Promise<Uint8Array> {
+    return this.createResponsePromise('decrypt', { data, algorithm });
+  }
+
+  public async getArweaveConfig(): Promise<GatewayConfig> {
+    return this.createResponsePromise('getArweaveConfig');
+  }
+
+  public async signature(
+    data: Uint8Array,
+    algorithm: AlgorithmIdentifier | RsaPssParams | EcdsaParams
+  ): Promise<Uint8Array> {
+    return this.createResponsePromise('signature');
+  }
+
+  public async getActivePublicKey(): Promise<string> {
+    return this.createResponsePromise('getActivePublicKey');
+  }
+
+  public async addToken(id: string): Promise<void> {
+    return this.createResponsePromise('addToken');
   }
 
   public async sign(transaction: Transaction): Promise<Transaction> {
