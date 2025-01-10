@@ -259,12 +259,19 @@ class WalletClient {
     }
 
     return new Promise((resolve, reject) => {
-      this.client!.end(false, () => {
-        this.client = null;
-        resolve();
+      this.client!.publish(this.uid, JSON.stringify({ action: 'disconnect' }), {}, (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+  
+        this.client!.end(false, () => {
+          this.client = null;
+          resolve();
+        });
+  
+        this.client!.on('error', reject);
       });
-
-      this.client!.on('error', reject);
     });
   }
 
