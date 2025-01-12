@@ -2,9 +2,14 @@
   "name": "@vela-ventures/ao-sync-sdk",
   "version": "1.0.1",
   "description": "",
-  "main": "index.js",
+  "source": "index.ts",
+  "main": "dist/index.js",
+  "module": "dist/index.module.js",
+  "unpkg": "dist/index.umd.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "microbundle",
+    "dev": "microbundle watch",
+    "test": "npm run test"
   },
   "repository": {
     "type": "git",
@@ -24,5 +29,16 @@
   "bugs": {
     "url": "https://github.com/vela-ventures/ao-sync-sdk/issues"
   },
-  "homepage": "https://github.com/vela-ventures/ao-sync-sdk#readme"
+  "homepage": "https://github.com/vela-ventures/ao-sync-sdk#readme",
+  "devDependencies": {
+    "microbundle": "^0.15.1"
+  },
+  "dependencies": {
+    "arconnect": "^1.0.4",
+    "arweave": "^1.15.5",
+    "buffer": "^6.0.3",
+    "mqtt": "^5.10.3",
+    "qrcode": "^1.5.4",
+    "uuid": "^11.0.3"
+  }
 }
