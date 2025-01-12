@@ -12,7 +12,7 @@ import type {
 } from 'arconnect';
 
 interface WalletResponse {
-  action: string;
+  action?: string;
   data?: any;
   error?: string;
 }
@@ -139,12 +139,18 @@ class WalletClient {
 
     if (messageData.action === 'connect') {
       await this.handleConnectResponse(packet);
+      return;
+    }
+
+    if (messageData.action === 'disconnect') {
+      await this.handleDisconnectResponse();
+      return;
     }
 
     const correlationId = packet?.properties?.correlationData?.toString();
     if (correlationId && this.responseListeners.has(correlationId)) {
       const resolve = this.responseListeners.get(correlationId)!;
-      resolve(message.toString());
+      resolve(messageData.data);
       this.responseListeners.delete(correlationId);
     }
   }
@@ -165,6 +171,10 @@ class WalletClient {
       : {};
 
     await this.publishMessage(topic, message, publishOptions);
+  }
+
+  private async handleDisconnectResponse(): Promise<void> {
+    this.disconnect();
   }
 
   private async publishMessage(
@@ -259,19 +269,24 @@ class WalletClient {
     }
 
     return new Promise((resolve, reject) => {
-      this.client!.publish(this.uid, JSON.stringify({ action: 'disconnect' }), {}, (err) => {
-        if (err) {
-          reject(err);
-          return;
+      this.client!.publish(
+        this.uid,
+        JSON.stringify({ action: 'disconnect' }),
+        {},
+        (err) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+
+          this.client!.end(false, () => {
+            this.client = null;
+            resolve();
+          });
+
+          this.client!.on('error', reject);
         }
-  
-        this.client!.end(false, () => {
-          this.client = null;
-          resolve();
-        });
-  
-        this.client!.on('error', reject);
-      });
+      );
     });
   }
 
@@ -307,9 +322,9 @@ class WalletClient {
 
   public async getArweaveConfig(): Promise<GatewayConfig> {
     const config: GatewayConfig = {
-      host: "arweave.net",
+      host: 'arweave.net',
       port: 443,
-      protocol: "https",
+      protocol: 'https',
     };
 
     return Promise.resolve(config);
