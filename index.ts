@@ -153,8 +153,8 @@ class WalletClient {
     const topic = this.uid;
     const message = {
       appInfo: {
-        name: 'some name',
-        url: 'test url',
+        name: 'Beacon Wallet',
+        url: 'https://beaconwallet.app/',
         logo: 'logo string',
       },
       permissions: ['transactions', 'view address', 'balance'],
@@ -306,14 +306,21 @@ class WalletClient {
   }
 
   public async getArweaveConfig(): Promise<GatewayConfig> {
-    return this.createResponsePromise('getArweaveConfig');
+    const config: GatewayConfig = {
+      host: "arweave.net",
+      port: 443,
+      protocol: "https",
+    };
+
+    return Promise.resolve(config);
   }
 
   public async signature(
     data: Uint8Array,
     algorithm: AlgorithmIdentifier | RsaPssParams | EcdsaParams
   ): Promise<Uint8Array> {
-    return this.createResponsePromise('signature');
+    const dataString = data.toString();
+    return this.createResponsePromise('signature', { data: dataString });
   }
 
   public async getActivePublicKey(): Promise<string> {
