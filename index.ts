@@ -32,7 +32,7 @@ class WalletClient {
   private responseTimeoutMs: number;
   private eventListeners: Map<string, Set<(data: any) => void>>;
 
-  constructor(responseTimeoutMs = 100000) {
+  constructor(responseTimeoutMs = 300000) {
     this.client = null;
     this.uid = 'c6767f5c-6aca-47e8-abb8-461384891d3c';
     this.qrCode = null;
