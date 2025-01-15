@@ -13,6 +13,8 @@ env:
 jobs:
   publish-package:
     runs-on: ubuntu-latest
+    dependencies:
+        - build
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -25,3 +27,15 @@ jobs:
 
       - name: Publish
         run: npm publish
+
+
+  build:
+    image: ubuntu-latest
+    stage: build
+    script:
+        - node --version
+        - npm --version
+        - npm ci
+        - npm run build -- --watch=false
+        - npm run build:prod
+
