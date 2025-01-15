@@ -29,15 +29,17 @@ class WalletClient {
   private qrCode: Promise<string> | null;
   private modal: HTMLDivElement | null;
   private responseListeners: Map<string, (response: any) => void>;
+  private connectionListener: ((response: any) => void) | null;
   private responseTimeoutMs: number;
   private eventListeners: Map<string, Set<(data: any) => void>>;
 
   constructor(responseTimeoutMs = 300000) {
     this.client = null;
-    this.uid = 'c6767f5c-6aca-47e8-abb8-461384891d3c';
+    this.uid = uuidv4();
     this.qrCode = null;
     this.modal = null;
     this.responseListeners = new Map();
+    this.connectionListener = null;
     this.responseTimeoutMs = responseTimeoutMs;
     this.eventListeners = new Map();
   }
@@ -45,23 +47,45 @@ class WalletClient {
   private createModal(qrCodeData: string, styles?: ModalStyles): void {
     if (this.modal) return;
 
+    // Create modal backdrop
     const modal = document.createElement('div');
     Object.assign(modal.style, {
       position: 'fixed',
       top: '0',
       left: '0',
-      width: '100vw',
-      height: '100vh',
-      backgroundColor: styles?.backgroundColor || 'rgba(0, 0, 0, 0.8)',
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: '9999',
-      color: '#fff',
-      fontFamily: 'Arial, sans-serif',
+      zIndex: '999999'
     });
 
-    const content = this.createModalContent(qrCodeData, styles);
+    // Create modal content
+    const content = document.createElement('div');
+    Object.assign(content.style, {
+      background: 'white',
+      borderRadius: '16px',
+      padding: '28px',
+      textAlign: 'center',
+      minWidth: '300px',
+      fontFamily: 'system-ui, -apple-system, sans-serif'
+    });
+
+    content.innerHTML = `
+      <h3 style="color: #000; font-size: 18px; font-weight: 500; margin-bottom: 5px;">AOSync</h3>
+      <div style="font-size: 14px; color: #2B2B2B; margin-bottom: 2px;">Scan with your beacon wallet</div>
+      <img src="${qrCodeData}" alt="QR Code" style="width: 200px; height: 200px; margin-bottom: 10px;">
+      <div style="font-size: 11px; color: #2B2B2B;">
+        Don't have beacon yet?
+        <a href="https://beaconwallet.com" 
+           target="_blank" 
+           style="color: #09084B; text-decoration: none; display: block; margin-top: 8px;">
+          beaconwallet.com
+        </a>
+      </div>
+    `;
     modal.appendChild(content);
     document.body.appendChild(modal);
     this.modal = modal;
@@ -75,10 +99,14 @@ class WalletClient {
     Object.assign(content.style, {
       backgroundColor: '#fff',
       padding: styles?.padding || '20px',
-      borderRadius: '8px',
+      borderRadius: '23px',
       boxShadow: '0 4px 10px rgba(0, 0, 0, 0.25)',
       textAlign: 'center',
       color: '#000',
+      display: 'flex',
+      justifyContent: 'center',
+      flexDirection: 'column',
+
     });
 
     const text = document.createElement('p');
@@ -91,7 +119,7 @@ class WalletClient {
       alt: 'QR Code',
       src: qrCodeData,
       style: {
-        maxWidth: '200px',
+        maxWidth: '180px',
         height: 'auto',
       },
     });
@@ -138,6 +166,7 @@ class WalletClient {
     const messageData = JSON.parse(message.toString()) as WalletResponse;
 
     if (messageData.action === 'connect') {
+      this.closeModal();
       await this.handleConnectResponse(packet);
       return;
     }
@@ -156,6 +185,9 @@ class WalletClient {
   }
 
   private async handleConnectResponse(packet: IPublishPacket): Promise<void> {
+    if (this.connectionListener) {
+      this.connectionListener('connected');
+    }
     const topic = this.uid;
     const message = {
       appInfo: {
@@ -239,6 +271,7 @@ class WalletClient {
     const responseChannel = `${this.uid}/response`;
 
     return new Promise((resolve, reject) => {
+      this.connectionListener = resolve;
       this.client!.on('connect', async () => {
         try {
           console.log('connected broker subing to ' + responseChannel);
@@ -252,7 +285,6 @@ class WalletClient {
 
           const qrCodeData = await QRCode.toDataURL('aosync=' + this.uid);
           this.createModal(qrCodeData);
-          resolve();
         } catch (err) {
           reject(err);
         }
