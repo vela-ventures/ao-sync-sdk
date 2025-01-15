@@ -31,9 +31,10 @@ class WalletClient {
   private responseListeners: Map<string, (response: any) => void>;
   private connectionListener: ((response: any) => void) | null;
   private responseTimeoutMs: number;
+  private txTimeoutMs: number;
   private eventListeners: Map<string, Set<(data: any) => void>>;
 
-  constructor(responseTimeoutMs = 300000) {
+  constructor(responseTimeoutMs = 30000, txTimeoutMs = 300000) {
     this.client = null;
     this.uid = uuidv4();
     this.qrCode = null;
@@ -41,6 +42,7 @@ class WalletClient {
     this.responseListeners = new Map();
     this.connectionListener = null;
     this.responseTimeoutMs = responseTimeoutMs;
+    this.txTimeoutMs = txTimeoutMs;
     this.eventListeners = new Map();
   }
 
@@ -229,6 +231,9 @@ class WalletClient {
     const correlationData = uuidv4();
     const topic = this.uid;
 
+    const isTransaction = ['sign', 'dispatch', 'signDataItem'].includes(action);
+    const timeoutDuration = isTransaction ? this.txTimeoutMs : this.responseTimeoutMs;
+
     return new Promise((resolve, reject) => {
       if (!this.client) {
         reject(new Error('Not connected to MQTT broker'));
@@ -255,7 +260,7 @@ class WalletClient {
           this.responseListeners.delete(correlationData);
           reject(new Error(`${action} timeout`));
         }
-      }, this.responseTimeoutMs);
+      }, timeoutDuration);
     });
   }
 
