@@ -13,8 +13,6 @@ env:
 jobs:
   publish-package:
     runs-on: ubuntu-latest
-    dependencies:
-        - build
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -25,17 +23,10 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           registry-url: "https://registry.npmjs.org/"
 
+      - name: Install dependencies and build
+        run: |
+          npm ci
+          npm run build -- --watch=false
+
       - name: Publish
         run: npm publish
-
-
-  build:
-    image: ubuntu-latest
-    stage: build
-    script:
-        - node --version
-        - npm --version
-        - npm ci
-        - npm run build -- --watch=false
-        - npm run build:prod
-
