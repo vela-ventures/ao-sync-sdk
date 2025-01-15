@@ -259,7 +259,7 @@ class WalletClient {
   }
 
   public async connect(
-    brokerUrl = 'ws://coolify.kento.sh:9001',
+    brokerUrl = 'wss://broker.beaconwallet.dev:8081',
     options: IClientOptions = { protocolVersion: 5 }
   ): Promise<void> {
     if (this.client) {
