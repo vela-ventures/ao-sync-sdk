@@ -206,7 +206,8 @@ class WalletClient {
   }
 
   private async handleDisconnectResponse(): Promise<void> {
-    this.disconnect();
+    this.emit('disconnected', { reason: 'Beacon wallet initiated disconnect' });
+    await this.disconnect();
   }
 
   private async publishMessage(
@@ -403,6 +404,12 @@ class WalletClient {
 
   public off(event: string, listener: (data: any) => void): void {
     this.eventListeners.get(event)?.delete(listener);
+  }
+
+  private emit(event: string, data: any): void {
+    if (this.eventListeners.has(event)) {
+      this.eventListeners.get(event)!.forEach((listener) => listener(data));
+    }
   }
 }
 
