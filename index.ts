@@ -25,7 +25,7 @@ interface ModalStyles {
 
 class WalletClient {
   private client: MqttClient | null;
-  private uid: string;
+  private uid: string | null;
   private qrCode: Promise<string> | null;
   private modal: HTMLDivElement | null;
   private responseListeners: Map<string, (response: any) => void>;
@@ -37,7 +37,7 @@ class WalletClient {
 
   constructor(responseTimeoutMs = 30000, txTimeoutMs = 300000) {
     this.client = null;
-    this.uid = uuidv4();
+    this.uid = null;
     this.qrCode = null;
     this.modal = null;
     this.responseListeners = new Map();
@@ -205,7 +205,9 @@ class WalletClient {
       ? { properties: { correlationData: packet.properties.correlationData } }
       : {};
 
-    await this.publishMessage(topic, message, publishOptions);
+    if (topic) {
+      await this.publishMessage(topic, message, publishOptions);
+    }
   }
 
   private async handleDisconnectResponse(): Promise<void> {
@@ -245,18 +247,20 @@ class WalletClient {
 
       this.responseListeners.set(correlationData, resolve);
 
-      this.publishMessage(
-        topic,
-        { action, correlationData, ...payload },
-        {
-          properties: {
-            correlationData: Buffer.from(correlationData, 'utf-8'),
-          },
-        }
-      ).catch((err) => {
-        this.responseListeners.delete(correlationData);
-        reject(err);
-      });
+      if (topic) {
+        this.publishMessage(
+          topic,
+          { action, correlationData, ...payload },
+          {
+            properties: {
+              correlationData: Buffer.from(correlationData, 'utf-8'),
+            },
+          }
+        ).catch((err) => {
+          this.responseListeners.delete(correlationData);
+          reject(err);
+        });
+      }
 
       const timeout = setTimeout(() => {
         if (this.responseListeners.has(correlationData)) {
@@ -265,7 +269,7 @@ class WalletClient {
         }
         this.activeTimeouts.delete(timeout);
       }, timeoutDuration);
-  
+
       this.activeTimeouts.add(timeout);
     });
   }
@@ -285,6 +289,7 @@ class WalletClient {
     }
 
     this.client = mqtt.connect(brokerUrl, options);
+    this.uid = uuidv4();
     const responseChannel = `${this.uid}/response`;
 
     return new Promise((resolve, reject) => {
@@ -318,32 +323,34 @@ class WalletClient {
     }
 
     return new Promise((resolve, reject) => {
-      this.client!.publish(
-        this.uid,
-        JSON.stringify({ action: 'disconnect' }),
-        {},
-        (err) => {
-          if (err) {
-            reject(err);
-            return;
+      if (this.uid) {
+        this.client!.publish(
+          this.uid,
+          JSON.stringify({ action: 'disconnect' }),
+          {},
+          (err) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+
+            this.client!.end(false, () => {
+              this.client = null;
+
+              this.responseListeners.forEach((resolve) =>
+                resolve(new Error('Disconnected before response was received'))
+              );
+              this.responseListeners.clear();
+
+              this.clearAllTimeouts();
+
+              resolve();
+            });
+
+            this.client!.on('error', reject);
           }
-
-          this.client!.end(false, () => {
-            this.client = null;
-
-            this.responseListeners.forEach((resolve) =>
-              resolve(new Error('Disconnected before response was received'))
-            );
-            this.responseListeners.clear();
-
-            this.clearAllTimeouts();
-
-            resolve();
-          });
-
-          this.client!.on('error', reject);
-        }
-      );
+        );
+      }
     });
   }
 
