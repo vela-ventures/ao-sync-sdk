@@ -31,9 +31,11 @@ class WalletClient {
   private responseListeners: Map<string, (response: any) => void>;
   private connectionListener: ((response: any) => void) | null;
   private responseTimeoutMs: number;
+  private txTimeoutMs: number;
   private eventListeners: Map<string, Set<(data: any) => void>>;
+  private activeTimeouts: Set<NodeJS.Timeout>;
 
-  constructor(responseTimeoutMs = 300000) {
+  constructor(responseTimeoutMs = 30000, txTimeoutMs = 300000) {
     this.client = null;
     this.uid = uuidv4();
     this.qrCode = null;
@@ -41,7 +43,9 @@ class WalletClient {
     this.responseListeners = new Map();
     this.connectionListener = null;
     this.responseTimeoutMs = responseTimeoutMs;
+    this.txTimeoutMs = txTimeoutMs;
     this.eventListeners = new Map();
+    this.activeTimeouts = new Set();
   }
 
   private createModal(qrCodeData: string, styles?: ModalStyles): void {
@@ -59,7 +63,7 @@ class WalletClient {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: '999999'
+      zIndex: '999999',
     });
 
     // Create modal content
@@ -70,7 +74,7 @@ class WalletClient {
       padding: '28px',
       textAlign: 'center',
       minWidth: '300px',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
+      fontFamily: 'system-ui, -apple-system, sans-serif',
     });
 
     content.innerHTML = `
@@ -106,7 +110,6 @@ class WalletClient {
       display: 'flex',
       justifyContent: 'center',
       flexDirection: 'column',
-
     });
 
     const text = document.createElement('p');
@@ -206,7 +209,8 @@ class WalletClient {
   }
 
   private async handleDisconnectResponse(): Promise<void> {
-    this.disconnect();
+    this.emit('disconnected', { reason: 'Beacon wallet initiated disconnect' });
+    await this.disconnect();
   }
 
   private async publishMessage(
@@ -227,6 +231,11 @@ class WalletClient {
   ): Promise<T> {
     const correlationData = uuidv4();
     const topic = this.uid;
+
+    const isTransaction = ['sign', 'dispatch', 'signDataItem'].includes(action);
+    const timeoutDuration = isTransaction
+      ? this.txTimeoutMs
+      : this.responseTimeoutMs;
 
     return new Promise((resolve, reject) => {
       if (!this.client) {
@@ -249,17 +258,25 @@ class WalletClient {
         reject(err);
       });
 
-      setTimeout(() => {
+      const timeout = setTimeout(() => {
         if (this.responseListeners.has(correlationData)) {
           this.responseListeners.delete(correlationData);
           reject(new Error(`${action} timeout`));
         }
-      }, this.responseTimeoutMs);
+        this.activeTimeouts.delete(timeout);
+      }, timeoutDuration);
+  
+      this.activeTimeouts.add(timeout);
     });
   }
 
+  private clearAllTimeouts(): void {
+    this.activeTimeouts.forEach((timeout) => clearTimeout(timeout));
+    this.activeTimeouts.clear();
+  }
+
   public async connect(
-    brokerUrl = 'ws://coolify.kento.sh:9001',
+    brokerUrl = 'wss://broker.beaconwallet.dev:8081',
     options: IClientOptions = { protocolVersion: 5 }
   ): Promise<void> {
     if (this.client) {
@@ -313,6 +330,14 @@ class WalletClient {
 
           this.client!.end(false, () => {
             this.client = null;
+
+            this.responseListeners.forEach((resolve) =>
+              resolve(new Error('Disconnected before response was received'))
+            );
+            this.responseListeners.clear();
+
+            this.clearAllTimeouts();
+
             resolve();
           });
 
@@ -403,6 +428,12 @@ class WalletClient {
 
   public off(event: string, listener: (data: any) => void): void {
     this.eventListeners.get(event)?.delete(listener);
+  }
+
+  private emit(event: string, data: any): void {
+    if (this.eventListeners.has(event)) {
+      this.eventListeners.get(event)!.forEach((listener) => listener(data));
+    }
   }
 }
 
