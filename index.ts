@@ -400,7 +400,7 @@ class WalletClient {
   }
 
   public async addToken(id: string): Promise<void> {
-    return this.createResponsePromise('addToken');
+    return this.createResponsePromise('addToken', { data: id });
   }
 
   public async sign(transaction: Transaction): Promise<Transaction> {
