@@ -1,7 +1,7 @@
 {
   "name": "@vela-ventures/ao-sync-sdk",
   "version": "1.1.5",
-  "description": "",
+  "description": "JavaScript SDK for Beacon wallet",
   "source": "index.ts",
   "main": "dist/index.js",
   "module": "dist/index.modern.mjs",
@@ -23,17 +23,30 @@
     "ao",
     "ao-sync",
     "ao-sync-sdk",
+    "becon",
     "beacon-wallet",
     "web3",
     "wallet",
-    "sdk"
+    "sdk",
+    "vela-ventures",
+    "wallet-sdk",
+    "@vela-ventures"
   ],
-  "author": "vela-ventures",
+  "author": {
+    "name": "vela-ventures",
+    "email": "",
+    "url": "https://vela.ventures/"
+  },
+  "contributors": [
+    "Artem Purundzhian <artempa1607@gmail.com>",
+    "Bohdan Yereshchenko <y.bogdan.work@gmail.com>",
+    "Max Greenall <max@vela.ventures>"
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/vela-ventures/ao-sync-sdk/issues"
   },
-  "homepage": "https://github.com/vela-ventures/ao-sync-sdk#readme",
+  "homepage": "https://github.com/vela-ventures/ao-sync-sdk",
   "devDependencies": {
     "microbundle": "^0.15.1"
   },
