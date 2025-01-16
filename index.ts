@@ -23,12 +23,17 @@ interface ModalStyles {
   padding?: string;
 }
 
+interface ResponseListenerData {
+  action: string;
+  resolve: (response: any) => void;
+}
+
 class WalletClient {
   private client: MqttClient | null;
   private uid: string | null;
   private qrCode: Promise<string> | null;
   private modal: HTMLDivElement | null;
-  private responseListeners: Map<string, (response: any) => void>;
+  private responseListeners: Map<string, ResponseListenerData>;
   private connectionListener: ((response: any) => void) | null;
   private responseTimeoutMs: number;
   private txTimeoutMs: number;
@@ -181,10 +186,25 @@ class WalletClient {
 
     const correlationId = packet?.properties?.correlationData?.toString();
     if (correlationId && this.responseListeners.has(correlationId)) {
-      const resolve = this.responseListeners.get(correlationId)!;
-      resolve(messageData.data);
+      const listenerData = this.responseListeners.get(correlationId)!;
+      if (listenerData.action === 'signDataItem') {
+        const decodedData = this.base64UrlDecode(messageData.data);
+        listenerData.resolve(decodedData);
+      } else {
+        listenerData.resolve(messageData.data);
+      }
       this.responseListeners.delete(correlationId);
     }
+  }
+
+  private base64UrlDecode(base64Url: string) {
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const paddedBase64 = base64.padEnd(
+      base64.length + ((4 - (base64.length % 4)) % 4),
+      '='
+    );
+    const decoded = atob(paddedBase64);
+    return decoded;
   }
 
   private async handleConnectResponse(packet: IPublishPacket): Promise<void> {
@@ -245,7 +265,10 @@ class WalletClient {
         return;
       }
 
-      this.responseListeners.set(correlationData, resolve);
+      this.responseListeners.set(correlationData, {
+        action,
+        resolve,
+      });
 
       if (topic) {
         this.publishMessage(
@@ -337,8 +360,10 @@ class WalletClient {
             this.client!.end(false, () => {
               this.client = null;
 
-              this.responseListeners.forEach((resolve) =>
-                resolve(new Error('Disconnected before response was received'))
+              this.responseListeners.forEach((listener) =>
+                listener.resolve(
+                  new Error('Disconnected before response was received')
+                )
               );
               this.responseListeners.clear();
 
