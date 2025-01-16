@@ -33,6 +33,7 @@ class WalletClient {
   private responseTimeoutMs: number;
   private txTimeoutMs: number;
   private eventListeners: Map<string, Set<(data: any) => void>>;
+  private activeTimeouts: Set<NodeJS.Timeout>;
 
   constructor(responseTimeoutMs = 30000, txTimeoutMs = 300000) {
     this.client = null;
@@ -44,6 +45,7 @@ class WalletClient {
     this.responseTimeoutMs = responseTimeoutMs;
     this.txTimeoutMs = txTimeoutMs;
     this.eventListeners = new Map();
+    this.activeTimeouts = new Set();
   }
 
   private createModal(qrCodeData: string, styles?: ModalStyles): void {
@@ -61,7 +63,7 @@ class WalletClient {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: '999999'
+      zIndex: '999999',
     });
 
     // Create modal content
@@ -72,7 +74,7 @@ class WalletClient {
       padding: '28px',
       textAlign: 'center',
       minWidth: '300px',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
+      fontFamily: 'system-ui, -apple-system, sans-serif',
     });
 
     content.innerHTML = `
@@ -108,7 +110,6 @@ class WalletClient {
       display: 'flex',
       justifyContent: 'center',
       flexDirection: 'column',
-
     });
 
     const text = document.createElement('p');
@@ -232,7 +233,9 @@ class WalletClient {
     const topic = this.uid;
 
     const isTransaction = ['sign', 'dispatch', 'signDataItem'].includes(action);
-    const timeoutDuration = isTransaction ? this.txTimeoutMs : this.responseTimeoutMs;
+    const timeoutDuration = isTransaction
+      ? this.txTimeoutMs
+      : this.responseTimeoutMs;
 
     return new Promise((resolve, reject) => {
       if (!this.client) {
@@ -255,13 +258,21 @@ class WalletClient {
         reject(err);
       });
 
-      setTimeout(() => {
+      const timeout = setTimeout(() => {
         if (this.responseListeners.has(correlationData)) {
           this.responseListeners.delete(correlationData);
           reject(new Error(`${action} timeout`));
         }
+        this.activeTimeouts.delete(timeout);
       }, timeoutDuration);
+  
+      this.activeTimeouts.add(timeout);
     });
+  }
+
+  private clearAllTimeouts(): void {
+    this.activeTimeouts.forEach((timeout) => clearTimeout(timeout));
+    this.activeTimeouts.clear();
   }
 
   public async connect(
@@ -319,6 +330,14 @@ class WalletClient {
 
           this.client!.end(false, () => {
             this.client = null;
+
+            this.responseListeners.forEach((resolve) =>
+              resolve(new Error('Disconnected before response was received'))
+            );
+            this.responseListeners.clear();
+
+            this.clearAllTimeouts();
+
             resolve();
           });
 
