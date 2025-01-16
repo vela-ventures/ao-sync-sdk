@@ -188,8 +188,8 @@ class WalletClient {
     if (correlationId && this.responseListeners.has(correlationId)) {
       const listenerData = this.responseListeners.get(correlationId)!;
       if (listenerData.action === 'signDataItem') {
-        const decodedData = this.base64UrlDecode(messageData.data);
-        listenerData.resolve(decodedData);
+        const decodedData = this.base64UrlDecode(messageData.data)
+        listenerData.resolve(decodedData)
       } else {
         listenerData.resolve(messageData.data);
       }
@@ -203,8 +203,12 @@ class WalletClient {
       base64.length + ((4 - (base64.length % 4)) % 4),
       '='
     );
-    const decoded = atob(paddedBase64);
-    return decoded;
+    const decodedString = atob(paddedBase64);
+    const byteArray = new Uint8Array(decodedString.length);
+    for (let i = 0; i < decodedString.length; i++) {
+      byteArray[i] = decodedString.charCodeAt(i);
+    }
+    return byteArray;
   }
 
   private async handleConnectResponse(packet: IPublishPacket): Promise<void> {
