@@ -54,6 +54,7 @@
     "arconnect": "^1.0.4",
     "arweave": "^1.15.5",
     "buffer": "^6.0.3",
+    "lottie-web": "^5.12.2",
     "mqtt": "^5.10.3",
     "qrcode": "^1.5.4",
     "uuid": "^11.0.3"
