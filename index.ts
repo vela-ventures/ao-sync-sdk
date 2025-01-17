@@ -12,7 +12,7 @@ import type {
 } from 'arconnect';
 import Lottie from 'lottie-web';
 import PaperplaneAnimation from './public/assets/paperplane.json';
-import pattern from './pettern';
+import bgPattern from './pettern';
 
 interface WalletResponse {
   action?: string;
@@ -50,7 +50,7 @@ fontStylesheet.href =
   'https://fonts.googleapis.com/css2?family=Sora:wght@100..800&display=swap';
 document.head.appendChild(fontStylesheet);
 
-const incodedPattern = btoa(pattern);
+const encodedPattern = btoa(bgPattern);
 
 class WalletClient {
   private client: MqttClient | null;
@@ -114,7 +114,7 @@ class WalletClient {
     });
 
     content.style.backgroundImage = `url(${
-      'data:image/svg+xml;base64,' + incodedPattern
+      'data:image/svg+xml;base64,' + encodedPattern
     })`;
 
     content.innerHTML = `
@@ -174,7 +174,7 @@ class WalletClient {
     });
 
     content.style.backgroundImage = `url(${
-      'data:image/svg+xml;base64,' + incodedPattern
+      'data:image/svg+xml;base64,' + encodedPattern
     })`;
 
     content.innerHTML = `
