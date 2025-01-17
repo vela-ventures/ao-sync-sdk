@@ -10,6 +10,10 @@ import type {
   DispatchResult,
   DataItem,
 } from 'arconnect';
+import Lottie from 'lottie-web';
+import PaperplaneAnimation from './public/assets/paperplane.json';
+import bgPattern from './pettern';
+import { createModalTemplate } from './templates';
 
 interface WalletResponse {
   action?: string;
@@ -23,12 +27,39 @@ interface ModalStyles {
   padding?: string;
 }
 
+interface ResponseListenerData {
+  action: string;
+  resolve: (response: any) => void;
+}
+
+const preconnectGoogleFonts = document.createElement('link');
+preconnectGoogleFonts.rel = 'preconnect';
+preconnectGoogleFonts.href = 'https://fonts.googleapis.com';
+document.head.appendChild(preconnectGoogleFonts);
+
+// Create <link> for preconnect to fonts.gstatic.com with crossorigin
+const preconnectGstatic = document.createElement('link');
+preconnectGstatic.rel = 'preconnect';
+preconnectGstatic.href = 'https://fonts.gstatic.com';
+preconnectGstatic.crossOrigin = 'anonymous'; // Specify crossorigin
+document.head.appendChild(preconnectGstatic);
+
+// Create <link> for the actual font stylesheet
+const fontStylesheet = document.createElement('link');
+fontStylesheet.rel = 'stylesheet';
+fontStylesheet.href =
+  'https://fonts.googleapis.com/css2?family=Sora:wght@100..800&display=swap';
+document.head.appendChild(fontStylesheet);
+
+const encodedPattern = btoa(bgPattern);
+
 class WalletClient {
   private client: MqttClient | null;
-  private uid: string;
+  private uid: string | null;
   private qrCode: Promise<string> | null;
   private modal: HTMLDivElement | null;
-  private responseListeners: Map<string, (response: any) => void>;
+  private approvalModal: HTMLDivElement | null;
+  private responseListeners: Map<string, ResponseListenerData>;
   private connectionListener: ((response: any) => void) | null;
   private responseTimeoutMs: number;
   private txTimeoutMs: number;
@@ -37,9 +68,10 @@ class WalletClient {
 
   constructor(responseTimeoutMs = 30000, txTimeoutMs = 300000) {
     this.client = null;
-    this.uid = uuidv4();
+    this.uid = null;
     this.qrCode = null;
     this.modal = null;
+    this.approvalModal = null;
     this.responseListeners = new Map();
     this.connectionListener = null;
     this.responseTimeoutMs = responseTimeoutMs;
@@ -50,87 +82,26 @@ class WalletClient {
 
   private createModal(qrCodeData: string, styles?: ModalStyles): void {
     if (this.modal) return;
-
-    // Create modal backdrop
-    const modal = document.createElement('div');
-    Object.assign(modal.style, {
-      position: 'fixed',
-      top: '0',
-      left: '0',
-      width: '100%',
-      height: '100%',
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: '999999',
+    const modal = createModalTemplate({
+      encodedPattern,
+      subTitle: 'Scan with your beacon wallet',
+      qrCodeData,
+      description: "Don't have beacon yet?",
     });
-
-    // Create modal content
-    const content = document.createElement('div');
-    Object.assign(content.style, {
-      background: 'white',
-      borderRadius: '16px',
-      padding: '28px',
-      textAlign: 'center',
-      minWidth: '300px',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-    });
-
-    content.innerHTML = `
-      <h3 style="color: #000; font-size: 18px; font-weight: 500; margin-bottom: 5px;">AOSync</h3>
-      <div style="font-size: 14px; color: #2B2B2B; margin-bottom: 2px;">Scan with your beacon wallet</div>
-      <img src="${qrCodeData}" alt="QR Code" style="width: 200px; height: 200px; margin-bottom: 10px;">
-      <div style="font-size: 11px; color: #2B2B2B;">
-        Don't have beacon yet?
-        <a href="https://beaconwallet.com" 
-           target="_blank" 
-           style="color: #09084B; text-decoration: none; display: block; margin-top: 8px;">
-          beaconwallet.com
-        </a>
-      </div>
-    `;
-    modal.appendChild(content);
-    document.body.appendChild(modal);
     this.modal = modal;
   }
 
-  private createModalContent(
-    qrCodeData: string,
-    styles?: ModalStyles
-  ): HTMLDivElement {
-    const content = document.createElement('div');
-    Object.assign(content.style, {
-      backgroundColor: '#fff',
-      padding: styles?.padding || '20px',
-      borderRadius: '23px',
-      boxShadow: '0 4px 10px rgba(0, 0, 0, 0.25)',
-      textAlign: 'center',
-      color: '#000',
-      display: 'flex',
-      justifyContent: 'center',
-      flexDirection: 'column',
+  private createApprovalModal(): void {
+    if (this.approvalModal) return;
+
+    const modal = createModalTemplate({
+      encodedPattern,
+      subTitle: 'Approval pending ...',
+      description: ' ',
+      animationData: PaperplaneAnimation,
     });
 
-    const text = document.createElement('p');
-    text.textContent = 'Scan the QR Code to connect:';
-    text.style.marginBottom = '20px';
-
-    const qrImg = document.createElement('img');
-    Object.assign(qrImg, {
-      id: 'qr-code',
-      alt: 'QR Code',
-      src: qrCodeData,
-      style: {
-        maxWidth: '180px',
-        height: 'auto',
-      },
-    });
-
-    const closeButton = this.createCloseButton();
-
-    content.append(text, qrImg, closeButton);
-    return content;
+    this.approvalModal = modal;
   }
 
   private createCloseButton(): HTMLButtonElement {
@@ -151,10 +122,49 @@ class WalletClient {
     return button;
   }
 
+  private connectionModalSuccessMessage(): void {
+    const qrCode = document.getElementById('aosync-beacon-connection-qrCode');
+
+    const modalDescription = document.getElementById(
+      'aosync-beacon-modal-description'
+    );
+    const successMark = document.createElement('div');
+    Object.assign(successMark.style, {
+      width: '200px',
+      height: '200px',
+      marginBottom: '10px',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingBottom: '30px',
+      boxSizing: 'border-box',
+    });
+    if (modalDescription) {
+      modalDescription!.style.visibility = 'hidden';
+    }
+    successMark.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="79" height="57" viewBox="0 0 79 57" fill="none">
+      <path d="M26.9098 57L0 30.221L5.18687 25.0593L26.9098 46.7012L73.8391 0L79 5.16166L26.9098 57Z" fill="#27BD69"/>
+    </svg>
+    `;
+    qrCode?.replaceWith(successMark);
+
+    setTimeout(() => {
+      this.closeModal();
+    }, 1000);
+  }
+
   private closeModal(): void {
     if (this.modal) {
       document.body.removeChild(this.modal);
       this.modal = null;
+    }
+  }
+
+  private closeApprovalModal(): void {
+    if (this.approvalModal) {
+      document.body.removeChild(this.approvalModal);
+      this.approvalModal = null;
     }
   }
 
@@ -169,7 +179,7 @@ class WalletClient {
     const messageData = JSON.parse(message.toString()) as WalletResponse;
 
     if (messageData.action === 'connect') {
-      this.closeModal();
+      this.connectionModalSuccessMessage();
       await this.handleConnectResponse(packet);
       return;
     }
@@ -181,10 +191,36 @@ class WalletClient {
 
     const correlationId = packet?.properties?.correlationData?.toString();
     if (correlationId && this.responseListeners.has(correlationId)) {
-      const resolve = this.responseListeners.get(correlationId)!;
-      resolve(messageData.data);
+      const listenerData = this.responseListeners.get(correlationId)!;
+      const isTransaction = ['sign', 'dispatch', 'signDataItem'].includes(
+        listenerData.action
+      );
+      if (listenerData.action === 'signDataItem') {
+        const decodedData = this.base64UrlDecode(messageData.data);
+        listenerData.resolve(decodedData);
+      } else {
+        listenerData.resolve(messageData.data);
+      }
+
+      if (isTransaction) {
+        this.closeApprovalModal();
+      }
       this.responseListeners.delete(correlationId);
     }
+  }
+
+  private base64UrlDecode(base64Url: string) {
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const paddedBase64 = base64.padEnd(
+      base64.length + ((4 - (base64.length % 4)) % 4),
+      '='
+    );
+    const decodedString = atob(paddedBase64);
+    const byteArray = new Uint8Array(decodedString.length);
+    for (let i = 0; i < decodedString.length; i++) {
+      byteArray[i] = decodedString.charCodeAt(i);
+    }
+    return byteArray;
   }
 
   private async handleConnectResponse(packet: IPublishPacket): Promise<void> {
@@ -205,7 +241,9 @@ class WalletClient {
       ? { properties: { correlationData: packet.properties.correlationData } }
       : {};
 
-    await this.publishMessage(topic, message, publishOptions);
+    if (topic) {
+      await this.publishMessage(topic, message, publishOptions);
+    }
   }
 
   private async handleDisconnectResponse(): Promise<void> {
@@ -243,20 +281,29 @@ class WalletClient {
         return;
       }
 
-      this.responseListeners.set(correlationData, resolve);
-
-      this.publishMessage(
-        topic,
-        { action, correlationData, ...payload },
-        {
-          properties: {
-            correlationData: Buffer.from(correlationData, 'utf-8'),
-          },
-        }
-      ).catch((err) => {
-        this.responseListeners.delete(correlationData);
-        reject(err);
+      this.responseListeners.set(correlationData, {
+        action,
+        resolve,
       });
+
+      if (topic) {
+        this.publishMessage(
+          topic,
+          { action, correlationData, ...payload },
+          {
+            properties: {
+              correlationData: Buffer.from(correlationData, 'utf-8'),
+            },
+          }
+        ).catch((err) => {
+          this.responseListeners.delete(correlationData);
+          reject(err);
+        });
+      }
+
+      if (isTransaction) {
+        this.createApprovalModal();
+      }
 
       const timeout = setTimeout(() => {
         if (this.responseListeners.has(correlationData)) {
@@ -265,7 +312,7 @@ class WalletClient {
         }
         this.activeTimeouts.delete(timeout);
       }, timeoutDuration);
-  
+
       this.activeTimeouts.add(timeout);
     });
   }
@@ -285,6 +332,7 @@ class WalletClient {
     }
 
     this.client = mqtt.connect(brokerUrl, options);
+    this.uid = uuidv4();
     const responseChannel = `${this.uid}/response`;
 
     return new Promise((resolve, reject) => {
@@ -318,32 +366,36 @@ class WalletClient {
     }
 
     return new Promise((resolve, reject) => {
-      this.client!.publish(
-        this.uid,
-        JSON.stringify({ action: 'disconnect' }),
-        {},
-        (err) => {
-          if (err) {
-            reject(err);
-            return;
+      if (this.uid) {
+        this.client!.publish(
+          this.uid,
+          JSON.stringify({ action: 'disconnect' }),
+          {},
+          (err) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+
+            this.client!.end(false, () => {
+              this.client = null;
+
+              this.responseListeners.forEach((listener) =>
+                listener.resolve(
+                  new Error('Disconnected before response was received')
+                )
+              );
+              this.responseListeners.clear();
+
+              this.clearAllTimeouts();
+
+              resolve();
+            });
+
+            this.client!.on('error', reject);
           }
-
-          this.client!.end(false, () => {
-            this.client = null;
-
-            this.responseListeners.forEach((resolve) =>
-              resolve(new Error('Disconnected before response was received'))
-            );
-            this.responseListeners.clear();
-
-            this.clearAllTimeouts();
-
-            resolve();
-          });
-
-          this.client!.on('error', reject);
-        }
-      );
+        );
+      }
     });
   }
 
