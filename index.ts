@@ -31,6 +31,11 @@ interface ResponseListenerData {
   resolve: (response: any) => void;
 }
 
+interface ReconnectListenerData {
+  corellationId: string;
+  resolve: (response: any) => void;
+}
+
 const preconnectGoogleFonts = document.createElement('link');
 preconnectGoogleFonts.rel = 'preconnect';
 preconnectGoogleFonts.href = 'https://fonts.googleapis.com';
@@ -60,10 +65,13 @@ class WalletClient {
   private approvalModal: HTMLDivElement | null;
   private responseListeners: Map<string, ResponseListenerData>;
   private connectionListener: ((response: any) => void) | null;
+  private reconnectListener: ReconnectListenerData | null;
   private responseTimeoutMs: number;
   private txTimeoutMs: number;
   private eventListeners: Map<string, Set<(data: any) => void>>;
   private activeTimeouts: Set<NodeJS.Timeout>;
+  private isConnected: boolean;
+  private reconnectionTimeout: NodeJS.Timeout | null;
 
   constructor(responseTimeoutMs = 30000, txTimeoutMs = 300000) {
     this.client = null;
@@ -73,10 +81,13 @@ class WalletClient {
     this.approvalModal = null;
     this.responseListeners = new Map();
     this.connectionListener = null;
+    this.reconnectListener = null;
     this.responseTimeoutMs = responseTimeoutMs;
     this.txTimeoutMs = txTimeoutMs;
     this.eventListeners = new Map();
     this.activeTimeouts = new Set();
+    this.isConnected = false;
+    this.reconnectionTimeout = null;
   }
 
   private createModal(qrCodeData: string, styles?: ModalStyles): void {
@@ -124,8 +135,18 @@ class WalletClient {
     }
 
     if (messageData.action === 'disconnect') {
-      await this.handleDisconnectResponse();
+      await this.handleDisconnectResponse('Beacon wallet initiated disconnect');
       return;
+    }
+
+    if (
+      packet?.properties.correlationData.toString() ==
+      this.reconnectListener?.corellationId
+    ) {
+      clearTimeout(this.reconnectionTimeout);
+      this.reconnectListener = null;
+      this.emit('connected', { status: 'connected successfully' });
+      this.isConnected = true;
     }
 
     const correlationId = packet?.properties?.correlationData?.toString();
@@ -193,10 +214,14 @@ class WalletClient {
     if (topic) {
       await this.publishMessage(topic, message, publishOptions);
     }
+
+    this.isConnected = true;
+    this.emit('connected', { status: 'connected successfully' });
   }
 
-  private async handleDisconnectResponse(): Promise<void> {
-    this.emit('disconnected', { reason: 'Beacon wallet initiated disconnect' });
+  private async handleDisconnectResponse(reason: string): Promise<void> {
+    this.isConnected = false;
+    this.emit('disconnected', { reason });
     await this.disconnect();
   }
 
@@ -282,9 +307,8 @@ class WalletClient {
       return;
     }
 
-    const sessionStorageTopicId = sessionStorage.getItem('aosync-topic-id');
     this.client = mqtt.connect(brokerUrl, options);
-    this.uid = sessionStorageTopicId ? sessionStorageTopicId : uuidv4();
+    this.uid = uuidv4();
     const responseChannel = `${this.uid}/response`;
 
     return new Promise((resolve, reject) => {
@@ -301,11 +325,101 @@ class WalletClient {
           this.client!.on('message', this.handleMQTTMessage.bind(this));
 
           const qrCodeData = await QRCode.toDataURL('aosync=' + this.uid);
-          if (sessionStorageTopicId) {
-            this.connectionListener('connected');
-          } else {
-            this.createModal(qrCodeData);
-          }
+          this.createModal(qrCodeData);
+        } catch (err) {
+          reject(err);
+        }
+      });
+
+      this.client!.on('error', reject);
+    });
+  }
+
+  public async reconnect(
+    brokerUrl = 'wss://broker.beaconwallet.dev:8081',
+    options: IClientOptions = {
+      protocolVersion: 5,
+    }
+  ): Promise<void> {
+    if (this.reconnectListener != null) return;
+
+    const sessionStorageTopicId = sessionStorage.getItem('aosync-topic-id');
+    if (sessionStorageTopicId === null) return;
+    this.uid = sessionStorageTopicId;
+    const responseChannel = `${this.uid}/response`;
+
+    if (this.client) {
+      return new Promise((resolve, reject) => {
+        try {
+          const correlationData = uuidv4();
+          console.log('corellationData created ' + correlationData);
+          this.reconnectListener = { corellationId: correlationData, resolve };
+
+          this.reconnectionTimeout = setTimeout(async () => {
+            if (this.isConnected) return;
+            console.warn('No response received during reconnection attempt');
+            clearTimeout(this.reconnectionTimeout);
+            try {
+              await this.disconnect();
+            } catch (err) {
+              reject(err);
+              return;
+            }
+            reject(new Error('Reconnection timeout'));
+          }, 3000);
+
+          this.publishMessage(
+            this.uid,
+            { action: 'getActiveAddress', correlationData: correlationData },
+            {
+              properties: {
+                correlationData: Buffer.from(correlationData, 'utf-8'),
+              },
+            }
+          );
+        } catch (err) {
+          reject(err);
+        }
+      });
+    }
+
+    this.client = mqtt.connect(brokerUrl, options);
+    return new Promise((resolve, reject) => {
+      this.client!.on('connect', async () => {
+        try {
+          const correlationData = uuidv4();
+          console.log('corellationData created ' + correlationData);
+          this.reconnectListener = { corellationId: correlationData, resolve };
+          console.log('connected broker subing to ' + responseChannel);
+          await new Promise<void>((res, rej) => {
+            this.client!.subscribe(responseChannel, (err) => {
+              err ? rej(err) : res();
+            });
+          });
+
+          this.reconnectionTimeout = setTimeout(async () => {
+            console.warn('No response received during reconnection attempt');
+            clearTimeout(this.reconnectionTimeout);
+            try {
+              await this.disconnect();
+            } catch (err) {
+              reject(err);
+              return;
+            }
+            reject(new Error('Reconnection timeout'));
+          }, 3000);
+
+          this.publishMessage(
+            this.uid,
+            { action: 'getActiveAddress', correlationData: correlationData },
+            {
+              properties: {
+                correlationData: Buffer.from(correlationData, 'utf-8'),
+              },
+            }
+          );
+
+          this.client!.on('message', this.handleMQTTMessage.bind(this));
         } catch (err) {
           reject(err);
         }
@@ -341,7 +455,8 @@ class WalletClient {
                   new Error('Disconnected before response was received')
                 )
               );
-              sessionStorage.removeItem('aosync-topic-id')
+              this.handleDisconnectResponse('disconnected from wallet');
+              sessionStorage.removeItem('aosync-topic-id');
               this.responseListeners.clear();
 
               this.clearAllTimeouts();

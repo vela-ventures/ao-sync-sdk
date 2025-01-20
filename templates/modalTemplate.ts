@@ -114,7 +114,6 @@ export const createModalTemplate = ({
 };
 
 export function connectionModalMessage(modalMessage: 'success' | 'fail'): void {
-  console.log('close called');
   const qrCode =
     document.getElementById('aosync-beacon-connection-qrCode') ||
     document.getElementById('aosync-lottie-animation');
