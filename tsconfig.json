@@ -1,6 +1,20 @@
 {
   "compilerOptions": {
     "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true
-  }
+    "allowSyntheticDefaultImports": true,
+    "target": "es2019",
+    "declaration": true,
+    "lib": [
+      "DOM",
+      "es2019",
+      "es2020.bigint",
+      "es2020.string",
+      "es2020.symbol.wellknown"
+    ],
+    "moduleResolution": "node",
+    "module": "commonjs",
+    "skipLibCheck": true,
+    "outDir": "./dist"
+  },
+  "include": ["./lib/**/*"]
 }

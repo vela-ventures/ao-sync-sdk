@@ -1,55 +1,18 @@
-import mqtt, { IClientOptions, IPublishPacket, MqttClient } from 'mqtt';
-import { v4 as uuidv4 } from 'uuid';
-import QRCode from 'qrcode';
-import { Buffer } from 'buffer';
-import type Transaction from 'arweave/web/lib/transaction';
+import mqtt, { IClientOptions, IPublishPacket, MqttClient } from "mqtt";
+import { v4 as uuidv4 } from "uuid";
+import QRCode from "qrcode";
+import { Buffer } from "buffer";
+import type Transaction from "arweave/web/lib/transaction";
 import type {
   PermissionType,
-  AppInfo,
   GatewayConfig,
   DispatchResult,
   DataItem,
-} from 'arconnect';
-import Lottie from 'lottie-web';
-import PaperplaneAnimation from './public/assets/paperplane.json';
-import bgPattern from './pettern';
-import { createModalTemplate } from './templates';
-
-interface WalletResponse {
-  action?: string;
-  data?: any;
-  error?: string;
-}
-
-interface ModalStyles {
-  backgroundColor?: string;
-  width?: string;
-  padding?: string;
-}
-
-interface ResponseListenerData {
-  action: string;
-  resolve: (response: any) => void;
-}
-
-const preconnectGoogleFonts = document.createElement('link');
-preconnectGoogleFonts.rel = 'preconnect';
-preconnectGoogleFonts.href = 'https://fonts.googleapis.com';
-document.head.appendChild(preconnectGoogleFonts);
-
-// Create <link> for preconnect to fonts.gstatic.com with crossorigin
-const preconnectGstatic = document.createElement('link');
-preconnectGstatic.rel = 'preconnect';
-preconnectGstatic.href = 'https://fonts.gstatic.com';
-preconnectGstatic.crossOrigin = 'anonymous'; // Specify crossorigin
-document.head.appendChild(preconnectGstatic);
-
-// Create <link> for the actual font stylesheet
-const fontStylesheet = document.createElement('link');
-fontStylesheet.rel = 'stylesheet';
-fontStylesheet.href =
-  'https://fonts.googleapis.com/css2?family=Sora:wght@100..800&display=swap';
-document.head.appendChild(fontStylesheet);
+} from "arconnect";
+import PaperplaneAnimation from "../public/assets/paperplane.json";
+import bgPattern from "../public/pattern";
+import { createModalTemplate } from "./templates";
+import "./fonts";
 
 const encodedPattern = btoa(bgPattern);
 
@@ -84,7 +47,7 @@ class WalletClient {
     if (this.modal) return;
     const modal = createModalTemplate({
       encodedPattern,
-      subTitle: 'Scan with your beacon wallet',
+      subTitle: "Scan with your beacon wallet",
       qrCodeData,
       description: "Don't have beacon yet?",
     });
@@ -96,8 +59,8 @@ class WalletClient {
 
     const modal = createModalTemplate({
       encodedPattern,
-      subTitle: 'Approval pending ...',
-      description: ' ',
+      subTitle: "Approval pending ...",
+      description: " ",
       animationData: PaperplaneAnimation,
     });
 
@@ -105,42 +68,42 @@ class WalletClient {
   }
 
   private createCloseButton(): HTMLButtonElement {
-    const button = document.createElement('button');
+    const button = document.createElement("button");
     Object.assign(button, {
-      textContent: 'Close',
+      textContent: "Close",
       onclick: () => this.closeModal(),
       style: {
-        marginTop: '20px',
-        padding: '10px 20px',
-        border: 'none',
-        backgroundColor: '#007BFF',
-        color: '#fff',
-        borderRadius: '4px',
-        cursor: 'pointer',
+        marginTop: "20px",
+        padding: "10px 20px",
+        border: "none",
+        backgroundColor: "#007BFF",
+        color: "#fff",
+        borderRadius: "4px",
+        cursor: "pointer",
       },
     });
     return button;
   }
 
   private connectionModalSuccessMessage(): void {
-    const qrCode = document.getElementById('aosync-beacon-connection-qrCode');
+    const qrCode = document.getElementById("aosync-beacon-connection-qrCode");
 
     const modalDescription = document.getElementById(
-      'aosync-beacon-modal-description'
+      "aosync-beacon-modal-description"
     );
-    const successMark = document.createElement('div');
+    const successMark = document.createElement("div");
     Object.assign(successMark.style, {
-      width: '200px',
-      height: '200px',
-      marginBottom: '10px',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      paddingBottom: '30px',
-      boxSizing: 'border-box',
+      width: "200px",
+      height: "200px",
+      marginBottom: "10px",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      paddingBottom: "30px",
+      boxSizing: "border-box",
     });
     if (modalDescription) {
-      modalDescription!.style.visibility = 'hidden';
+      modalDescription!.style.visibility = "hidden";
     }
     successMark.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" width="79" height="57" viewBox="0 0 79 57" fill="none">
@@ -178,13 +141,13 @@ class WalletClient {
 
     const messageData = JSON.parse(message.toString()) as WalletResponse;
 
-    if (messageData.action === 'connect') {
+    if (messageData.action === "connect") {
       this.connectionModalSuccessMessage();
       await this.handleConnectResponse(packet);
       return;
     }
 
-    if (messageData.action === 'disconnect') {
+    if (messageData.action === "disconnect") {
       await this.handleDisconnectResponse();
       return;
     }
@@ -192,10 +155,10 @@ class WalletClient {
     const correlationId = packet?.properties?.correlationData?.toString();
     if (correlationId && this.responseListeners.has(correlationId)) {
       const listenerData = this.responseListeners.get(correlationId)!;
-      const isTransaction = ['sign', 'dispatch', 'signDataItem'].includes(
+      const isTransaction = ["sign", "dispatch", "signDataItem"].includes(
         listenerData.action
       );
-      if (listenerData.action === 'signDataItem') {
+      if (listenerData.action === "signDataItem") {
         const decodedData = this.base64UrlDecode(messageData.data);
         listenerData.resolve(decodedData);
       } else {
@@ -210,10 +173,10 @@ class WalletClient {
   }
 
   private base64UrlDecode(base64Url: string) {
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
     const paddedBase64 = base64.padEnd(
       base64.length + ((4 - (base64.length % 4)) % 4),
-      '='
+      "="
     );
     const decodedString = atob(paddedBase64);
     const byteArray = new Uint8Array(decodedString.length);
@@ -225,16 +188,16 @@ class WalletClient {
 
   private async handleConnectResponse(packet: IPublishPacket): Promise<void> {
     if (this.connectionListener) {
-      this.connectionListener('connected');
+      this.connectionListener("connected");
     }
     const topic = this.uid;
     const message = {
       appInfo: {
-        name: 'Beacon Wallet',
-        url: 'https://beaconwallet.app/',
-        logo: 'logo string',
+        name: "Beacon Wallet",
+        url: "https://beaconwallet.app/",
+        logo: "logo string",
       },
-      permissions: ['transactions', 'view address', 'balance'],
+      permissions: ["transactions", "view address", "balance"],
     };
 
     const publishOptions = packet?.properties?.correlationData
@@ -247,7 +210,7 @@ class WalletClient {
   }
 
   private async handleDisconnectResponse(): Promise<void> {
-    this.emit('disconnected', { reason: 'Beacon wallet initiated disconnect' });
+    this.emit("disconnected", { reason: "Beacon wallet initiated disconnect" });
     await this.disconnect();
   }
 
@@ -270,14 +233,14 @@ class WalletClient {
     const correlationData = uuidv4();
     const topic = this.uid;
 
-    const isTransaction = ['sign', 'dispatch', 'signDataItem'].includes(action);
+    const isTransaction = ["sign", "dispatch", "signDataItem"].includes(action);
     const timeoutDuration = isTransaction
       ? this.txTimeoutMs
       : this.responseTimeoutMs;
 
     return new Promise((resolve, reject) => {
       if (!this.client) {
-        reject(new Error('Not connected to MQTT broker'));
+        reject(new Error("Not connected to MQTT broker"));
         return;
       }
 
@@ -292,7 +255,7 @@ class WalletClient {
           { action, correlationData, ...payload },
           {
             properties: {
-              correlationData: Buffer.from(correlationData, 'utf-8'),
+              correlationData: Buffer.from(correlationData, "utf-8"),
             },
           }
         ).catch((err) => {
@@ -323,11 +286,11 @@ class WalletClient {
   }
 
   public async connect(
-    brokerUrl = 'wss://broker.beaconwallet.dev:8081',
+    brokerUrl = "wss://broker.beaconwallet.dev:8081",
     options: IClientOptions = { protocolVersion: 5 }
   ): Promise<void> {
     if (this.client) {
-      console.warn('Already connected to the broker.');
+      console.warn("Already connected to the broker.");
       return;
     }
 
@@ -337,31 +300,31 @@ class WalletClient {
 
     return new Promise((resolve, reject) => {
       this.connectionListener = resolve;
-      this.client!.on('connect', async () => {
+      this.client!.on("connect", async () => {
         try {
-          console.log('connected broker subing to ' + responseChannel);
+          console.log("connected broker subing to " + responseChannel);
           await new Promise<void>((res, rej) => {
             this.client!.subscribe(responseChannel, (err) => {
               err ? rej(err) : res();
             });
           });
 
-          this.client!.on('message', this.handleMQTTMessage.bind(this));
+          this.client!.on("message", this.handleMQTTMessage.bind(this));
 
-          const qrCodeData = await QRCode.toDataURL('aosync=' + this.uid);
+          const qrCodeData = await QRCode.toDataURL("aosync=" + this.uid);
           this.createModal(qrCodeData);
         } catch (err) {
           reject(err);
         }
       });
 
-      this.client!.on('error', reject);
+      this.client!.on("error", reject);
     });
   }
 
   public async disconnect(): Promise<void> {
     if (!this.client) {
-      console.warn('No active MQTT connection to disconnect.');
+      console.warn("No active MQTT connection to disconnect.");
       return;
     }
 
@@ -369,7 +332,7 @@ class WalletClient {
       if (this.uid) {
         this.client!.publish(
           this.uid,
-          JSON.stringify({ action: 'disconnect' }),
+          JSON.stringify({ action: "disconnect" }),
           {},
           (err) => {
             if (err) {
@@ -382,7 +345,7 @@ class WalletClient {
 
               this.responseListeners.forEach((listener) =>
                 listener.resolve(
-                  new Error('Disconnected before response was received')
+                  new Error("Disconnected before response was received")
                 )
               );
               this.responseListeners.clear();
@@ -392,7 +355,7 @@ class WalletClient {
               resolve();
             });
 
-            this.client!.on('error', reject);
+            this.client!.on("error", reject);
           }
         );
       }
@@ -400,40 +363,40 @@ class WalletClient {
   }
 
   public async getActiveAddress(): Promise<string> {
-    return this.createResponsePromise('getActiveAddress');
+    return this.createResponsePromise("getActiveAddress");
   }
 
   public async getAllAddresses(): Promise<string[]> {
-    return this.createResponsePromise('getAllAddresses');
+    return this.createResponsePromise("getAllAddresses");
   }
 
   public async getPermissions(): Promise<PermissionType[]> {
-    return this.createResponsePromise('getPermissions');
+    return this.createResponsePromise("getPermissions");
   }
 
   public async getWalletNames(): Promise<{ [addr: string]: string }> {
-    return this.createResponsePromise('getWalletNames');
+    return this.createResponsePromise("getWalletNames");
   }
 
   public async encrypt(
     data: BufferSource,
     algorithm: RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams
   ): Promise<Uint8Array> {
-    return this.createResponsePromise('encrypt', { data, algorithm });
+    return this.createResponsePromise("encrypt", { data, algorithm });
   }
 
   public async decrypt(
     data: BufferSource,
     algorithm: RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams
   ): Promise<Uint8Array> {
-    return this.createResponsePromise('decrypt', { data, algorithm });
+    return this.createResponsePromise("decrypt", { data, algorithm });
   }
 
   public async getArweaveConfig(): Promise<GatewayConfig> {
     const config: GatewayConfig = {
-      host: 'arweave.net',
+      host: "arweave.net",
       port: 443,
-      protocol: 'https',
+      protocol: "https",
     };
 
     return Promise.resolve(config);
@@ -444,27 +407,27 @@ class WalletClient {
     algorithm: AlgorithmIdentifier | RsaPssParams | EcdsaParams
   ): Promise<Uint8Array> {
     const dataString = data.toString();
-    return this.createResponsePromise('signature', { data: dataString });
+    return this.createResponsePromise("signature", { data: dataString });
   }
 
   public async getActivePublicKey(): Promise<string> {
-    return this.createResponsePromise('getActivePublicKey');
+    return this.createResponsePromise("getActivePublicKey");
   }
 
   public async addToken(id: string): Promise<void> {
-    return this.createResponsePromise('addToken');
+    return this.createResponsePromise("addToken");
   }
 
   public async sign(transaction: Transaction): Promise<Transaction> {
-    return this.createResponsePromise('sign', { transaction });
+    return this.createResponsePromise("sign", { transaction });
   }
 
   public async dispatch(transaction: Transaction): Promise<DispatchResult> {
-    return this.createResponsePromise('dispatch', { transaction });
+    return this.createResponsePromise("dispatch", { transaction });
   }
 
   public async signDataItem(dataItem: DataItem): Promise<ArrayBuffer> {
-    return this.createResponsePromise('signDataItem', { dataItem });
+    return this.createResponsePromise("signDataItem", { dataItem });
   }
 
   public async isAvailable(): Promise<boolean> {
