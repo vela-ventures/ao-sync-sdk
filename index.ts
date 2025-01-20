@@ -88,7 +88,6 @@ class WalletClient {
   }
 
   private createModal(qrCodeData: string, styles?: ModalStyles): void {
-    if (this.modal) return;
     const modal = createModalTemplate({
       subTitle: 'Scan with your beacon wallet',
       qrCodeData,
@@ -298,6 +297,8 @@ class WalletClient {
     }
   ): Promise<void> {
     if (this.client) {
+      const qrCodeData = await QRCode.toDataURL('aosync=' + this.uid);
+      this.createModal(qrCodeData);
       console.warn('Already connected to the broker.');
       return;
     }
@@ -305,7 +306,9 @@ class WalletClient {
     this.client = mqtt.connect(brokerUrl, options);
     this.uid = uuidv4();
     const responseChannel = `${this.uid}/response`;
-
+    const qrCodeData = await QRCode.toDataURL('aosync=' + this.uid);
+    this.createModal(qrCodeData);
+    
     return new Promise((resolve, reject) => {
       this.connectionListener = resolve;
       this.client!.on('connect', async () => {
@@ -319,8 +322,6 @@ class WalletClient {
 
           this.client!.on('message', this.handleMQTTMessage.bind(this));
 
-          const qrCodeData = await QRCode.toDataURL('aosync=' + this.uid);
-          this.createModal(qrCodeData);
         } catch (err) {
           reject(err);
         }
