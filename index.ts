@@ -11,7 +11,6 @@ import type {
   DataItem,
 } from 'arconnect';
 import PaperplaneAnimation from './public/assets/paperplane.json';
-import bgPattern from './pettern';
 import { connectionModalMessage, createModalTemplate } from './templates';
 
 interface WalletResponse {
@@ -55,8 +54,6 @@ fontStylesheet.href =
   'https://fonts.googleapis.com/css2?family=Sora:wght@100..800&display=swap';
 document.head.appendChild(fontStylesheet);
 
-const encodedPattern = btoa(bgPattern);
-
 class WalletClient {
   private client: MqttClient | null;
   private uid: string | null;
@@ -93,7 +90,6 @@ class WalletClient {
   private createModal(qrCodeData: string, styles?: ModalStyles): void {
     if (this.modal) return;
     const modal = createModalTemplate({
-      encodedPattern,
       subTitle: 'Scan with your beacon wallet',
       qrCodeData,
       description: "Don't have beacon yet?",
@@ -105,7 +101,6 @@ class WalletClient {
     if (this.approvalModal) return;
 
     const modal = createModalTemplate({
-      encodedPattern,
       subTitle: 'Approval pending ...',
       description: ' ',
       animationData: PaperplaneAnimation,

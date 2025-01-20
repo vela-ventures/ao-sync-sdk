@@ -1,13 +1,11 @@
 import Lottie from 'lottie-web';
 
 export const createModalTemplate = ({
-  encodedPattern,
   subTitle,
   description,
   qrCodeData,
   animationData,
 }: {
-  encodedPattern: string;
   subTitle: string;
   description?: string;
   qrCodeData?: string;
@@ -60,9 +58,7 @@ export const createModalTemplate = ({
   });
   content.id = 'aosync-modal-content';
 
-  content.style.backgroundImage = `url(${
-    'data:image/svg+xml;base64,' + encodedPattern
-  })`;
+  content.style.backgroundImage = `url(https://arweave.net/zNeeL2prnXwctfwCo07xyhT8ob-M6F70RgYObK51Y90)`;
 
   content.innerHTML = `
      <div style="width: 50px; height: 50px; border-radius: 50%; background-color: #F7FAFD; margin-bottom: 12px; display: flex; justify-content: center; align-items: center">
@@ -85,7 +81,7 @@ export const createModalTemplate = ({
         <a href="https://beaconwallet.app" 
            target="_blank" 
            style="color: #09084B; text-decoration: none; display: block; margin-top: 8px;">
-          beaconwallet.com
+          beaconwallet.app
         </a>
       </div>
     `;
