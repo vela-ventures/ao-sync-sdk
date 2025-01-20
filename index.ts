@@ -119,6 +119,7 @@ class WalletClient {
         this.modal = null;
       }
       await this.handleConnectResponse(packet);
+      sessionStorage.setItem('aosync-topic-id', this.uid);
       return;
     }
 
@@ -272,15 +273,18 @@ class WalletClient {
 
   public async connect(
     brokerUrl = 'wss://broker.beaconwallet.dev:8081',
-    options: IClientOptions = { protocolVersion: 5 }
+    options: IClientOptions = {
+      protocolVersion: 5,
+    }
   ): Promise<void> {
     if (this.client) {
       console.warn('Already connected to the broker.');
       return;
     }
 
+    const sessionStorageTopicId = sessionStorage.getItem('aosync-topic-id');
     this.client = mqtt.connect(brokerUrl, options);
-    this.uid = uuidv4();
+    this.uid = sessionStorageTopicId ? sessionStorageTopicId : uuidv4();
     const responseChannel = `${this.uid}/response`;
 
     return new Promise((resolve, reject) => {
@@ -297,7 +301,11 @@ class WalletClient {
           this.client!.on('message', this.handleMQTTMessage.bind(this));
 
           const qrCodeData = await QRCode.toDataURL('aosync=' + this.uid);
-          this.createModal(qrCodeData);
+          if (sessionStorageTopicId) {
+            this.connectionListener('connected');
+          } else {
+            this.createModal(qrCodeData);
+          }
         } catch (err) {
           reject(err);
         }
@@ -333,10 +341,10 @@ class WalletClient {
                   new Error('Disconnected before response was received')
                 )
               );
+              sessionStorage.removeItem('aosync-topic-id')
               this.responseListeners.clear();
 
               this.clearAllTimeouts();
-
               resolve();
             });
 
