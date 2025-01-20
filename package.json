@@ -8,8 +8,10 @@
   "unpkg": "dist/index.umd.js",
   "exports": {
     "import": "./dist/index.modern.mjs",
-    "require": "./dist/index.js"
+    "require": "./dist/index.js",
+    "types": "./dist/index.d.ts"
   },
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "microbundle",
     "dev": "microbundle watch",

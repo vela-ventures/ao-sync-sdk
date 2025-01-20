@@ -26,6 +26,7 @@ export const createModalTemplate = ({
     justifyContent: 'center',
     zIndex: '999999',
   });
+  modal.id = 'aosync-modal';
 
   // Create modal content
   const content = document.createElement('div');
@@ -95,3 +96,50 @@ export const createModalTemplate = ({
   }
   return modal;
 };
+
+export function connectionModalMessage(
+  modalMessage: 'success' | 'fail'
+): void {
+  console.log('close called');
+  const qrCode =
+    document.getElementById('aosync-beacon-connection-qrCode') ||
+    document.getElementById('aosync-lottie-animation');
+
+  const modal = document.getElementById('aosync-modal');
+
+  const modalDescription = document.getElementById(
+    'aosync-beacon-modal-description'
+  );
+  const successMark = document.createElement('div');
+  Object.assign(successMark.style, {
+    width: '200px',
+    height: '200px',
+    marginBottom: '10px',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingBottom: '30px',
+    boxSizing: 'border-box',
+  });
+  if (modalDescription) {
+    modalDescription!.style.visibility = 'hidden';
+  }
+  if (modalMessage === 'success') {
+    successMark.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="79" height="57" viewBox="0 0 79 57" fill="none">
+      <path d="M26.9098 57L0 30.221L5.18687 25.0593L26.9098 46.7012L73.8391 0L79 5.16166L26.9098 57Z" fill="#27BD69"/>
+    </svg>
+    `;
+  } else {
+    successMark.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 75 85" fill="none">
+        <path d="M5.16166 0L39.5 34.3383L73.8383 0L79 5.16166L44.6617 39.5L79 73.8383L73.8383 79L39.5 44.6617L5.16166 79L0 73.8383L34.3383 39.5L0 5.16166L5.16166 0Z" fill="#E53E3E"/>
+    </svg>
+     `;
+  }
+  qrCode?.replaceWith(successMark);
+
+  setTimeout(() => {
+    document.body.removeChild(modal);
+  }, 1000);
+}

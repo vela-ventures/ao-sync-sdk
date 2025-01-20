@@ -10,10 +10,9 @@ import type {
   DispatchResult,
   DataItem,
 } from 'arconnect';
-import Lottie from 'lottie-web';
 import PaperplaneAnimation from './public/assets/paperplane.json';
 import bgPattern from './pettern';
-import { createModalTemplate } from './templates';
+import { connectionModalMessage, createModalTemplate } from './templates';
 
 interface WalletResponse {
   action?: string;
@@ -104,70 +103,6 @@ class WalletClient {
     this.approvalModal = modal;
   }
 
-  private createCloseButton(): HTMLButtonElement {
-    const button = document.createElement('button');
-    Object.assign(button, {
-      textContent: 'Close',
-      onclick: () => this.closeModal(),
-      style: {
-        marginTop: '20px',
-        padding: '10px 20px',
-        border: 'none',
-        backgroundColor: '#007BFF',
-        color: '#fff',
-        borderRadius: '4px',
-        cursor: 'pointer',
-      },
-    });
-    return button;
-  }
-
-  private connectionModalSuccessMessage(): void {
-    const qrCode = document.getElementById('aosync-beacon-connection-qrCode');
-
-    const modalDescription = document.getElementById(
-      'aosync-beacon-modal-description'
-    );
-    const successMark = document.createElement('div');
-    Object.assign(successMark.style, {
-      width: '200px',
-      height: '200px',
-      marginBottom: '10px',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      paddingBottom: '30px',
-      boxSizing: 'border-box',
-    });
-    if (modalDescription) {
-      modalDescription!.style.visibility = 'hidden';
-    }
-    successMark.innerHTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="79" height="57" viewBox="0 0 79 57" fill="none">
-      <path d="M26.9098 57L0 30.221L5.18687 25.0593L26.9098 46.7012L73.8391 0L79 5.16166L26.9098 57Z" fill="#27BD69"/>
-    </svg>
-    `;
-    qrCode?.replaceWith(successMark);
-
-    setTimeout(() => {
-      this.closeModal();
-    }, 1000);
-  }
-
-  private closeModal(): void {
-    if (this.modal) {
-      document.body.removeChild(this.modal);
-      this.modal = null;
-    }
-  }
-
-  private closeApprovalModal(): void {
-    if (this.approvalModal) {
-      document.body.removeChild(this.approvalModal);
-      this.approvalModal = null;
-    }
-  }
-
   private async handleMQTTMessage(
     topic: string,
     message: Buffer,
@@ -179,7 +114,10 @@ class WalletClient {
     const messageData = JSON.parse(message.toString()) as WalletResponse;
 
     if (messageData.action === 'connect') {
-      this.connectionModalSuccessMessage();
+      connectionModalMessage('success');
+      if (this.modal) {
+        this.modal = null;
+      }
       await this.handleConnectResponse(packet);
       return;
     }
@@ -203,7 +141,17 @@ class WalletClient {
       }
 
       if (isTransaction) {
-        this.closeApprovalModal();
+        if (messageData.data === 'declined') {
+          connectionModalMessage('fail');
+          if (this.approvalModal) {
+            this.approvalModal = null;
+          }
+        } else {
+          connectionModalMessage('success');
+          if (this.approvalModal) {
+            this.approvalModal = null;
+          }
+        }
       }
       this.responseListeners.delete(correlationId);
     }
