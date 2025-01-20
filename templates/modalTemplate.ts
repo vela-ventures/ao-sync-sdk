@@ -20,13 +20,26 @@ export const createModalTemplate = ({
     left: '0',
     width: '100%',
     height: '100%',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: '999999',
   });
   modal.id = 'aosync-modal';
+
+  const backdrop = document.createElement('div');
+  Object.assign(backdrop.style, {
+    position: 'absolute',
+    top: '0',
+    left: '0',
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  });
+  backdrop.id = 'aosync-backdrop';
+  backdrop.onclick = () => {
+    document.body.removeChild(modal);
+  };
 
   // Create modal content
   const content = document.createElement('div');
@@ -43,7 +56,9 @@ export const createModalTemplate = ({
     flexDirection: 'column',
     alignItems: 'center',
     backgroundRepeat: 'no-repeat',
+    zIndex: '10',
   });
+  content.id = 'aosync-modal-content';
 
   content.style.backgroundImage = `url(${
     'data:image/svg+xml;base64,' + encodedPattern
@@ -74,6 +89,7 @@ export const createModalTemplate = ({
         </a>
       </div>
     `;
+  modal.appendChild(backdrop);
   modal.appendChild(content);
   document.body.appendChild(modal);
 
@@ -97,9 +113,7 @@ export const createModalTemplate = ({
   return modal;
 };
 
-export function connectionModalMessage(
-  modalMessage: 'success' | 'fail'
-): void {
+export function connectionModalMessage(modalMessage: 'success' | 'fail'): void {
   console.log('close called');
   const qrCode =
     document.getElementById('aosync-beacon-connection-qrCode') ||
