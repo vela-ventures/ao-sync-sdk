@@ -16,7 +16,7 @@ import "./fonts";
 
 const encodedPattern = btoa(bgPattern);
 
-class WalletClient {
+export default class WalletClient {
   private client: MqttClient | null;
   private uid: string | null;
   private qrCode: Promise<string> | null;
@@ -451,5 +451,3 @@ class WalletClient {
     }
   }
 }
-
-export default WalletClient;
