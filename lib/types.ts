@@ -1,16 +1,28 @@
-interface WalletResponse {
+import { AppInfo, GatewayConfig, PermissionType } from "arconnect";
+
+export interface WalletResponse {
   action?: string;
   data?: any;
   error?: string;
 }
 
-interface ModalStyles {
+export interface ModalStyles {
   backgroundColor?: string;
   width?: string;
   padding?: string;
 }
 
-interface ResponseListenerData {
+export interface ResponseListenerData {
   action: string;
   resolve: (response: any) => void;
+}
+
+export interface ReconnectListenerData {
+  corellationId: string;
+  resolve: (response: any) => void;
+}
+export interface ConnectionOptions {
+  permissions?: PermissionType[];
+  appInfo?: AppInfo;
+  gateway?: GatewayConfig;
 }

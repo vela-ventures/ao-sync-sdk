@@ -1,13 +1,11 @@
 import Lottie from "lottie-web";
 
 export const createModalTemplate = ({
-  encodedPattern,
   subTitle,
   description,
   qrCodeData,
   animationData,
 }: {
-  encodedPattern: string;
   subTitle: string;
   description?: string;
   qrCodeData?: string;
@@ -15,38 +13,52 @@ export const createModalTemplate = ({
 }) => {
   const modal = document.createElement("div");
   Object.assign(modal.style, {
-    position: "fixed",
-    top: "0",
-    left: "0",
-    width: "100%",
-    height: "100%",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: "999999",
+    position: 'fixed',
+    top: '0',
+    left: '0',
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: '999999',
   });
+  modal.id = 'aosync-modal';
+
+  const backdrop = document.createElement('div');
+  Object.assign(backdrop.style, {
+    position: 'absolute',
+    top: '0',
+    left: '0',
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  });
+  backdrop.id = 'aosync-backdrop';
+  backdrop.onclick = () => {
+    document.body.removeChild(modal);
+  };
 
   // Create modal content
   const content = document.createElement("div");
   Object.assign(content.style, {
-    background: "white",
-    borderRadius: "16px",
-    padding: "28px",
-    paddingTop: "47px",
-    textAlign: "center",
-    minWidth: "300px",
-    fontFamily: "Sora",
-    display: "flex",
-    justifyContent: "center",
-    flexDirection: "column",
-    alignItems: "center",
-    backgroundRepeat: "no-repeat",
+    background: 'white',
+    borderRadius: '16px',
+    padding: '28px',
+    paddingTop: '47px',
+    textAlign: 'center',
+    minWidth: '300px',
+    fontFamily: 'Sora',
+    display: 'flex',
+    justifyContent: 'center',
+    flexDirection: 'column',
+    alignItems: 'center',
+    backgroundRepeat: 'no-repeat',
+    zIndex: '10',
   });
+  content.id = 'aosync-modal-content';
 
-  content.style.backgroundImage = `url(${
-    "data:image/svg+xml;base64," + encodedPattern
-  })`;
+  content.style.backgroundImage = `url(https://arweave.net/zNeeL2prnXwctfwCo07xyhT8ob-M6F70RgYObK51Y90)`;
 
   content.innerHTML = `
      <div style="width: 50px; height: 50px; border-radius: 50%; background-color: #F7FAFD; margin-bottom: 12px; display: flex; justify-content: center; align-items: center">
@@ -71,10 +83,11 @@ export const createModalTemplate = ({
         <a href="https://beaconwallet.app"
            target="_blank"
            style="color: #09084B; text-decoration: none; display: block; margin-top: 8px;">
-          beaconwallet.com
+          beaconwallet.app
         </a>
       </div>
     `;
+  modal.appendChild(backdrop);
   modal.appendChild(content);
   document.body.appendChild(modal);
 
@@ -97,3 +110,47 @@ export const createModalTemplate = ({
   }
   return modal;
 };
+
+export function connectionModalMessage(modalMessage: 'success' | 'fail'): void {
+  const qrCode =
+    document.getElementById('aosync-beacon-connection-qrCode') ||
+    document.getElementById('aosync-lottie-animation');
+
+  const modal = document.getElementById('aosync-modal');
+
+  const modalDescription = document.getElementById(
+    'aosync-beacon-modal-description'
+  );
+  const successMark = document.createElement('div');
+  Object.assign(successMark.style, {
+    width: '200px',
+    height: '200px',
+    marginBottom: '10px',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingBottom: '30px',
+    boxSizing: 'border-box',
+  });
+  if (modalDescription) {
+    modalDescription!.style.visibility = 'hidden';
+  }
+  if (modalMessage === 'success') {
+    successMark.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="79" height="57" viewBox="0 0 79 57" fill="none">
+      <path d="M26.9098 57L0 30.221L5.18687 25.0593L26.9098 46.7012L73.8391 0L79 5.16166L26.9098 57Z" fill="#27BD69"/>
+    </svg>
+    `;
+  } else {
+    successMark.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 75 85" fill="none">
+        <path d="M5.16166 0L39.5 34.3383L73.8383 0L79 5.16166L44.6617 39.5L79 73.8383L73.8383 79L39.5 44.6617L5.16166 79L0 73.8383L34.3383 39.5L0 5.16166L5.16166 0Z" fill="#E53E3E"/>
+    </svg>
+     `;
+  }
+  qrCode?.replaceWith(successMark);
+
+  setTimeout(() => {
+    document.body.removeChild(modal);
+  }, 1000);
+}
