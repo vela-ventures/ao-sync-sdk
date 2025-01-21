@@ -151,15 +151,18 @@ export default class WalletClient {
 
     const messageData = JSON.parse(message.toString()) as WalletResponse;
 
-    if (messageData.action === "connect") {
-      connectionModalMessage("success");
+    if (messageData.action === 'connect') {
+      connectionModalMessage('success');
       if (this.modal) {
         this.modal = null;
       }
+      await this.handleConnectResponse(packet);
+      sessionStorage.setItem('aosync-topic-id', this.uid);
+      return;
     }
 
-    if (messageData.action === "disconnect") {
-      await this.handleDisconnectResponse("Beacon wallet initiated disconnect");
+    if (messageData.action === 'disconnect') {
+      await this.handleDisconnectResponse('Beacon wallet initiated disconnect');
       return;
     }
 
@@ -321,9 +324,24 @@ export default class WalletClient {
   }
 
   public async connect({
-    permissions,
-    appInfo,
-    gateway,
+    permissions = [
+      "ACCESS_ADDRESS",
+      "ACCESS_ALL_ADDRESSES",
+      "ACCESS_ARWEAVE_CONFIG",
+      "ACCESS_PUBLIC_KEY",
+      "ACCESS_TOKENS",
+      "DECRYPT",
+      "DISPATCH",
+      "ENCRYPT",
+      "SIGNATURE",
+      "SIGN_TRANSACTION",
+    ],
+    appInfo = { name: "unknown", logo: "app logo" },
+    gateway = {
+      host: "arweave.net",
+      port: 443,
+      protocol: "https",
+    },
     brokerUrl = "wss://broker.beaconwallet.dev:8081",
     options = { protocolVersion: 5 },
   }: {
