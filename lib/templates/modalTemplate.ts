@@ -1,4 +1,4 @@
-import Lottie from 'lottie-web';
+import Lottie from "lottie-web";
 
 export const createModalTemplate = ({
   subTitle,
@@ -11,7 +11,7 @@ export const createModalTemplate = ({
   qrCodeData?: string;
   animationData?: any;
 }) => {
-  const modal = document.createElement('div');
+  const modal = document.createElement("div");
   Object.assign(modal.style, {
     position: 'fixed',
     top: '0',
@@ -40,7 +40,7 @@ export const createModalTemplate = ({
   };
 
   // Create modal content
-  const content = document.createElement('div');
+  const content = document.createElement("div");
   Object.assign(content.style, {
     background: 'white',
     borderRadius: '16px',
@@ -69,17 +69,19 @@ export const createModalTemplate = ({
       <h3 style="color: #000; font-size: 18px; font-weight: 500; margin-bottom: 5px; margin-top: 0px">AOSync</h3>
       <div style="font-size: 14px; color: #2B2B2B; margin-bottom: 2px;">${subTitle}</div>
       ${
-        qrCodeData &&
-        `<img id="aosync-beacon-connection-qrCode" src="${qrCodeData}" alt="QR Code" style="width: 200px; height: 200px; margin-bottom: 10px;">`
+        (qrCodeData &&
+          `<img id="aosync-beacon-connection-qrCode" src="${qrCodeData}" alt="QR Code" style="width: 200px; height: 200px; margin-bottom: 10px;">`) ||
+        ""
       }
       ${
-        animationData &&
-        '<div id="aosync-lottie-animation" style="width: 200px; height: 200px; margin-bottom: 10px;"></div>'
+        (animationData &&
+          '<div id="aosync-lottie-animation" style="width: 200px; height: 200px; margin-bottom: 10px;"></div>') ||
+        ""
       }
       <div style="font-size: 11px; color: #2B2B2B;">
         <span id="aosync-beacon-modal-description">${description}</span>
-        <a href="https://beaconwallet.app" 
-           target="_blank" 
+        <a href="https://beaconwallet.app"
+           target="_blank"
            style="color: #09084B; text-decoration: none; display: block; margin-top: 8px;">
           beaconwallet.app
         </a>
@@ -90,15 +92,15 @@ export const createModalTemplate = ({
   document.body.appendChild(modal);
 
   if (animationData) {
-    const lottieContainer = document.getElementById('aosync-lottie-animation');
+    const lottieContainer = document.getElementById("aosync-lottie-animation");
     if (lottieContainer) {
       try {
         Lottie.loadAnimation({
           container: lottieContainer,
-          renderer: 'svg',
+          renderer: "svg",
           loop: true,
           autoplay: true,
-          path: '../paperplane.json',
+          path: "../paperplane.json",
           animationData: animationData,
         });
       } catch (error) {

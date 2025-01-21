@@ -1,6 +1,22 @@
 {
   "compilerOptions": {
     "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true
-  }
+    "allowSyntheticDefaultImports": true,
+    "lib": [
+      "DOM",
+      "es2019",
+      "es2020.bigint",
+      "es2020.string",
+      "es2020.symbol.wellknown"
+    ],
+    "moduleResolution": "node",
+    "skipLibCheck": true,
+    "target": "ES2019", // Target modern JavaScript
+    "module": "ESNext", // Use ESModules for ESM build
+    "outDir": "./dist/esm", // Output directory for ESM
+    "declaration": true, // Generate type definitions
+    "declarationDir": "./dist/types"
+  },
+  "include": ["./lib/**/*"],
+  "exclude": ["node_modules", "dist"]
 }
