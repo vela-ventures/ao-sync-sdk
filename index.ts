@@ -35,6 +35,12 @@ interface ReconnectListenerData {
   resolve: (response: any) => void;
 }
 
+interface ConnectionOptions {
+  permissions?: PermissionType[];
+  appInfo?: AppInfo;
+  gateway?: GatewayConfig;
+}
+
 const preconnectGoogleFonts = document.createElement('link');
 preconnectGoogleFonts.rel = 'preconnect';
 preconnectGoogleFonts.href = 'https://fonts.googleapis.com';
@@ -69,6 +75,7 @@ class WalletClient {
   private activeTimeouts: Set<NodeJS.Timeout>;
   private isConnected: boolean;
   private reconnectionTimeout: NodeJS.Timeout | null;
+  private connectOptions: ConnectionOptions;
 
   constructor(responseTimeoutMs = 30000, txTimeoutMs = 300000) {
     this.client = null;
@@ -85,6 +92,7 @@ class WalletClient {
     this.activeTimeouts = new Set();
     this.isConnected = false;
     this.reconnectionTimeout = null;
+    this.connectOptions = null;
   }
 
   private createModal(qrCodeData: string, styles?: ModalStyles): void {
@@ -194,11 +202,11 @@ class WalletClient {
     const topic = this.uid;
     const message = {
       appInfo: {
-        name: 'Beacon Wallet',
+        name: this.connectOptions.appInfo?.name || 'unknown',
         url: 'https://beaconwallet.app/',
-        logo: 'logo string',
+        logo: this.connectOptions.appInfo?.logo || 'unknown',
       },
-      permissions: ['transactions', 'view address', 'balance'],
+      permissions: ['transactions', 'view address', 'balance']
     };
 
     const publishOptions = packet?.properties?.correlationData
@@ -290,12 +298,19 @@ class WalletClient {
     this.activeTimeouts.clear();
   }
 
-  public async connect(
+  public async connect({
+    permissions,
+    appInfo,
+    gateway,
     brokerUrl = 'wss://broker.beaconwallet.dev:8081',
-    options: IClientOptions = {
-      protocolVersion: 5,
-    }
-  ): Promise<void> {
+    options = { protocolVersion: 5 },
+  }: {
+    permissions?: PermissionType[];
+    appInfo?: AppInfo;
+    gateway?: GatewayConfig;
+    brokerUrl?: string;
+    options?: IClientOptions;
+  }): Promise<void> {
     if (this.client) {
       const qrCodeData = await QRCode.toDataURL('aosync=' + this.uid);
       this.createModal(qrCodeData);
@@ -308,7 +323,12 @@ class WalletClient {
     const responseChannel = `${this.uid}/response`;
     const qrCodeData = await QRCode.toDataURL('aosync=' + this.uid);
     this.createModal(qrCodeData);
-    
+
+    this.connectOptions = {
+      permissions,
+      appInfo,
+      gateway,
+    };
     return new Promise((resolve, reject) => {
       this.connectionListener = resolve;
       this.client!.on('connect', async () => {
@@ -321,7 +341,6 @@ class WalletClient {
           });
 
           this.client!.on('message', this.handleMQTTMessage.bind(this));
-
         } catch (err) {
           reject(err);
         }
