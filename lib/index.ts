@@ -151,18 +151,18 @@ export default class WalletClient {
 
     const messageData = JSON.parse(message.toString()) as WalletResponse;
 
-    if (messageData.action === 'connect') {
-      connectionModalMessage('success');
+    if (messageData.action === "connect") {
+      connectionModalMessage("success");
       if (this.modal) {
         this.modal = null;
       }
       await this.handleConnectResponse(packet);
-      sessionStorage.setItem('aosync-topic-id', this.uid);
+      sessionStorage.setItem("aosync-topic-id", this.uid);
       return;
     }
 
-    if (messageData.action === 'disconnect') {
-      await this.handleDisconnectResponse('Beacon wallet initiated disconnect');
+    if (messageData.action === "disconnect") {
+      await this.handleDisconnectResponse("Beacon wallet initiated disconnect");
       return;
     }
 
@@ -249,6 +249,11 @@ export default class WalletClient {
   private async handleDisconnectResponse(reason: string): Promise<void> {
     this.isConnected = false;
     this.emit("disconnected", { reason });
+    const modal = createModalTemplate({
+      subTitle: "Beacon wallet disconnected",
+      description: " ",
+      autoClose: true,
+    });
     await this.disconnect();
   }
 
@@ -534,6 +539,11 @@ export default class WalletClient {
   }
 
   public async getPermissions(): Promise<PermissionType[]> {
+    if (!this.client) {
+      console.warn("Not connected to beacon wallet");
+      return;
+    }
+
     return this.createResponsePromise("getPermissions");
   }
 
@@ -578,7 +588,7 @@ export default class WalletClient {
   }
 
   public async addToken(id: string): Promise<void> {
-    return this.createResponsePromise("addToken");
+    return this.createResponsePromise("addToken", { data: id });
   }
 
   public async sign(transaction: Transaction): Promise<Transaction> {

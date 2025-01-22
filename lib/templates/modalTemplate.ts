@@ -5,36 +5,38 @@ export const createModalTemplate = ({
   description,
   qrCodeData,
   animationData,
+  autoClose,
 }: {
   subTitle: string;
   description?: string;
   qrCodeData?: string;
   animationData?: any;
+  autoClose?: boolean
 }) => {
   const modal = document.createElement("div");
   Object.assign(modal.style, {
-    position: 'fixed',
-    top: '0',
-    left: '0',
-    width: '100%',
-    height: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: '999999',
+    position: "fixed",
+    top: "0",
+    left: "0",
+    width: "100%",
+    height: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: "999999",
   });
-  modal.id = 'aosync-modal';
+  modal.id = "aosync-modal";
 
-  const backdrop = document.createElement('div');
+  const backdrop = document.createElement("div");
   Object.assign(backdrop.style, {
-    position: 'absolute',
-    top: '0',
-    left: '0',
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    position: "absolute",
+    top: "0",
+    left: "0",
+    width: "100%",
+    height: "100%",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   });
-  backdrop.id = 'aosync-backdrop';
+  backdrop.id = "aosync-backdrop";
   backdrop.onclick = () => {
     document.body.removeChild(modal);
   };
@@ -42,21 +44,21 @@ export const createModalTemplate = ({
   // Create modal content
   const content = document.createElement("div");
   Object.assign(content.style, {
-    background: 'white',
-    borderRadius: '16px',
-    padding: '28px',
-    paddingTop: '47px',
-    textAlign: 'center',
-    minWidth: '300px',
-    fontFamily: 'Sora',
-    display: 'flex',
-    justifyContent: 'center',
-    flexDirection: 'column',
-    alignItems: 'center',
-    backgroundRepeat: 'no-repeat',
-    zIndex: '10',
+    background: "white",
+    borderRadius: "16px",
+    padding: "28px",
+    paddingTop: "47px",
+    textAlign: "center",
+    minWidth: "300px",
+    fontFamily: "Sora",
+    display: "flex",
+    justifyContent: "center",
+    flexDirection: "column",
+    alignItems: "center",
+    backgroundRepeat: "no-repeat",
+    zIndex: "10",
   });
-  content.id = 'aosync-modal-content';
+  content.id = "aosync-modal-content";
 
   content.style.backgroundImage = `url(https://arweave.net/zNeeL2prnXwctfwCo07xyhT8ob-M6F70RgYObK51Y90)`;
 
@@ -108,34 +110,39 @@ export const createModalTemplate = ({
       }
     }
   }
+  if (autoClose) {
+    setTimeout(() => {
+      document.body.removeChild(modal);
+    }, 1000);
+  }
   return modal;
 };
 
-export function connectionModalMessage(modalMessage: 'success' | 'fail'): void {
+export function connectionModalMessage(modalMessage: "success" | "fail"): void {
   const qrCode =
-    document.getElementById('aosync-beacon-connection-qrCode') ||
-    document.getElementById('aosync-lottie-animation');
+    document.getElementById("aosync-beacon-connection-qrCode") ||
+    document.getElementById("aosync-lottie-animation");
 
-  const modal = document.getElementById('aosync-modal');
+  const modal = document.getElementById("aosync-modal");
 
   const modalDescription = document.getElementById(
-    'aosync-beacon-modal-description'
+    "aosync-beacon-modal-description"
   );
-  const successMark = document.createElement('div');
+  const successMark = document.createElement("div");
   Object.assign(successMark.style, {
-    width: '200px',
-    height: '200px',
-    marginBottom: '10px',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingBottom: '30px',
-    boxSizing: 'border-box',
+    width: "200px",
+    height: "200px",
+    marginBottom: "10px",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingBottom: "30px",
+    boxSizing: "border-box",
   });
   if (modalDescription) {
-    modalDescription!.style.visibility = 'hidden';
+    modalDescription!.style.visibility = "hidden";
   }
-  if (modalMessage === 'success') {
+  if (modalMessage === "success") {
     successMark.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" width="79" height="57" viewBox="0 0 79 57" fill="none">
       <path d="M26.9098 57L0 30.221L5.18687 25.0593L26.9098 46.7012L73.8391 0L79 5.16166L26.9098 57Z" fill="#27BD69"/>
