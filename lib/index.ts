@@ -167,7 +167,8 @@ export default class WalletClient {
         url: "https://beaconwallet.app/",
         logo: this.connectOptions.appInfo?.logo || "unknown",
       },
-      permissions: ["transactions", "view address", "balance"],
+      permissions: this.connectOptions.permissions,
+      gateway: this.connectOptions.gateway,
     };
 
     const publishOptions = packet?.properties?.correlationData
@@ -491,14 +492,14 @@ export default class WalletClient {
     data: BufferSource,
     algorithm: RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams
   ): Promise<Uint8Array> {
-    return this.createResponsePromise("encrypt", { data, algorithm });
+    return this.createResponsePromise("encrypt", { data: data + '', algorithm });
   }
 
   public async decrypt(
     data: BufferSource,
     algorithm: RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams
   ): Promise<Uint8Array> {
-    return this.createResponsePromise("decrypt", { data, algorithm });
+    return this.createResponsePromise("decrypt", { data: data + '', algorithm });
   }
 
   public async getArweaveConfig(): Promise<GatewayConfig> {
