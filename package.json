@@ -26,6 +26,9 @@
     "url": "git+https://github.com/vela-ventures/ao-sync-sdk.git"
   },
   "keywords": [
+    "arweave",
+    "arweave-js",
+    "arweave-sdk",
     "ao",
     "ao-sync",
     "ao-sync-sdk",

@@ -77,70 +77,6 @@ export default class WalletClient {
     this.approvalModal = modal;
   }
 
-  private createCloseButton(): HTMLButtonElement {
-    const button = document.createElement("button");
-    Object.assign(button, {
-      textContent: "Close",
-      onclick: () => this.closeModal(),
-      style: {
-        marginTop: "20px",
-        padding: "10px 20px",
-        border: "none",
-        backgroundColor: "#007BFF",
-        color: "#fff",
-        borderRadius: "4px",
-        cursor: "pointer",
-      },
-    });
-    return button;
-  }
-
-  private connectionModalSuccessMessage(): void {
-    const qrCode = document.getElementById("aosync-beacon-connection-qrCode");
-
-    const modalDescription = document.getElementById(
-      "aosync-beacon-modal-description"
-    );
-    const successMark = document.createElement("div");
-    Object.assign(successMark.style, {
-      width: "200px",
-      height: "200px",
-      marginBottom: "10px",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      paddingBottom: "30px",
-      boxSizing: "border-box",
-    });
-    if (modalDescription) {
-      modalDescription!.style.visibility = "hidden";
-    }
-    successMark.innerHTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="79" height="57" viewBox="0 0 79 57" fill="none">
-      <path d="M26.9098 57L0 30.221L5.18687 25.0593L26.9098 46.7012L73.8391 0L79 5.16166L26.9098 57Z" fill="#27BD69"/>
-    </svg>
-    `;
-    qrCode?.replaceWith(successMark);
-
-    setTimeout(() => {
-      this.closeModal();
-    }, 1000);
-  }
-
-  private closeModal(): void {
-    if (this.modal) {
-      document.body.removeChild(this.modal);
-      this.modal = null;
-    }
-  }
-
-  private closeApprovalModal(): void {
-    if (this.approvalModal) {
-      document.body.removeChild(this.approvalModal);
-      this.approvalModal = null;
-    }
-  }
-
   private async handleMQTTMessage(
     topic: string,
     message: Buffer,
@@ -151,18 +87,18 @@ export default class WalletClient {
 
     const messageData = JSON.parse(message.toString()) as WalletResponse;
 
-    if (messageData.action === 'connect') {
-      connectionModalMessage('success');
+    if (messageData.action === "connect") {
+      connectionModalMessage("success");
       if (this.modal) {
         this.modal = null;
       }
       await this.handleConnectResponse(packet);
-      sessionStorage.setItem('aosync-topic-id', this.uid);
+      sessionStorage.setItem("aosync-topic-id", this.uid);
       return;
     }
 
-    if (messageData.action === 'disconnect') {
-      await this.handleDisconnectResponse('Beacon wallet initiated disconnect');
+    if (messageData.action === "disconnect") {
+      await this.handleDisconnectResponse("Beacon wallet initiated disconnect");
       return;
     }
 
@@ -228,10 +164,11 @@ export default class WalletClient {
     const message = {
       appInfo: {
         name: this.connectOptions.appInfo?.name || "unknown",
-        url: "https://beaconwallet.app/",
+        url: "unknown",
         logo: this.connectOptions.appInfo?.logo || "unknown",
       },
-      permissions: ["transactions", "view address", "balance"],
+      permissions: this.connectOptions.permissions,
+      gateway: this.connectOptions.gateway,
     };
 
     const publishOptions = packet?.properties?.correlationData
@@ -249,6 +186,11 @@ export default class WalletClient {
   private async handleDisconnectResponse(reason: string): Promise<void> {
     this.isConnected = false;
     this.emit("disconnected", { reason });
+    const modal = createModalTemplate({
+      subTitle: "Beacon wallet disconnected",
+      description: " ",
+      autoClose: true,
+    });
     await this.disconnect();
   }
 
@@ -310,6 +252,11 @@ export default class WalletClient {
         if (this.responseListeners.has(correlationData)) {
           this.responseListeners.delete(correlationData);
           reject(new Error(`${action} timeout`));
+        }
+        if(isTransaction){
+          if (document.getElementById("aosync-modal")) {
+            connectionModalMessage("fail");
+          }
         }
         this.activeTimeouts.delete(timeout);
       }, timeoutDuration);
@@ -534,6 +481,11 @@ export default class WalletClient {
   }
 
   public async getPermissions(): Promise<PermissionType[]> {
+    if (!this.client) {
+      console.warn("Not connected to beacon wallet");
+      return;
+    }
+
     return this.createResponsePromise("getPermissions");
   }
 
@@ -543,16 +495,22 @@ export default class WalletClient {
 
   public async encrypt(
     data: BufferSource,
-    algorithm: RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams
+    algorithm?: RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams
   ): Promise<Uint8Array> {
-    return this.createResponsePromise("encrypt", { data, algorithm });
+    return this.createResponsePromise("encrypt", {
+      data: data + "",
+      algorithm,
+    });
   }
 
   public async decrypt(
     data: BufferSource,
-    algorithm: RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams
+    algorithm?: RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams
   ): Promise<Uint8Array> {
-    return this.createResponsePromise("decrypt", { data, algorithm });
+    return this.createResponsePromise("decrypt", {
+      data: data + "",
+      algorithm,
+    });
   }
 
   public async getArweaveConfig(): Promise<GatewayConfig> {
@@ -567,7 +525,7 @@ export default class WalletClient {
 
   public async signature(
     data: Uint8Array,
-    algorithm: AlgorithmIdentifier | RsaPssParams | EcdsaParams
+    algorithm?: AlgorithmIdentifier | RsaPssParams | EcdsaParams
   ): Promise<Uint8Array> {
     const dataString = data.toString();
     return this.createResponsePromise("signature", { data: dataString });
@@ -578,7 +536,7 @@ export default class WalletClient {
   }
 
   public async addToken(id: string): Promise<void> {
-    return this.createResponsePromise("addToken");
+    return this.createResponsePromise("addToken", { data: id });
   }
 
   public async sign(transaction: Transaction): Promise<Transaction> {
