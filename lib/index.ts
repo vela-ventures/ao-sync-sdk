@@ -338,7 +338,7 @@ export default class WalletClient {
   }
 
   public async reconnect(
-    brokerUrl = "wss://broker.beaconwallet.dev:8081",
+    brokerUrl = "wss://aosync-broker-eu.beaconwallet.dev:8081",
     options: IClientOptions = {
       protocolVersion: 5,
     }

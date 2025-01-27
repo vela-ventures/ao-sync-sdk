@@ -54,7 +54,7 @@ await walletClient.connect({
     port: 443,
     protocol: "https"
   },
-  brokerUrl: "wss://broker.beaconwallet.dev:8081",
+  brokerUrl: "wss://aosync-broker-eu.beaconwallet.dev:8081",
   options: {
     protocolVersion: 5
   }
