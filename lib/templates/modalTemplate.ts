@@ -11,7 +11,7 @@ export const createModalTemplate = ({
   description?: string;
   qrCodeData?: string;
   animationData?: any;
-  autoClose?: boolean
+  autoClose?: boolean;
 }) => {
   const modal = document.createElement("div");
   Object.assign(modal.style, {
@@ -113,6 +113,9 @@ export const createModalTemplate = ({
   if (autoClose) {
     setTimeout(() => {
       document.body.removeChild(modal);
+      if (document.getElementById("aosync-modal")) {
+        document.body.removeChild(document.getElementById("aosync-modal"));
+      }
     }, 1000);
   }
   return modal;

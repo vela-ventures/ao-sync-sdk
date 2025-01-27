@@ -164,7 +164,7 @@ export default class WalletClient {
     const message = {
       appInfo: {
         name: this.connectOptions.appInfo?.name || "unknown",
-        url: "https://beaconwallet.app/",
+        url: "unknown",
         logo: this.connectOptions.appInfo?.logo || "unknown",
       },
       permissions: this.connectOptions.permissions,
@@ -252,6 +252,11 @@ export default class WalletClient {
         if (this.responseListeners.has(correlationData)) {
           this.responseListeners.delete(correlationData);
           reject(new Error(`${action} timeout`));
+        }
+        if(isTransaction){
+          if (document.getElementById("aosync-modal")) {
+            connectionModalMessage("fail");
+          }
         }
         this.activeTimeouts.delete(timeout);
       }, timeoutDuration);
@@ -490,16 +495,22 @@ export default class WalletClient {
 
   public async encrypt(
     data: BufferSource,
-    algorithm: RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams
+    algorithm?: RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams
   ): Promise<Uint8Array> {
-    return this.createResponsePromise("encrypt", { data: data + '', algorithm });
+    return this.createResponsePromise("encrypt", {
+      data: data + "",
+      algorithm,
+    });
   }
 
   public async decrypt(
     data: BufferSource,
-    algorithm: RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams
+    algorithm?: RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams
   ): Promise<Uint8Array> {
-    return this.createResponsePromise("decrypt", { data: data + '', algorithm });
+    return this.createResponsePromise("decrypt", {
+      data: data + "",
+      algorithm,
+    });
   }
 
   public async getArweaveConfig(): Promise<GatewayConfig> {
@@ -514,7 +525,7 @@ export default class WalletClient {
 
   public async signature(
     data: Uint8Array,
-    algorithm: AlgorithmIdentifier | RsaPssParams | EcdsaParams
+    algorithm?: AlgorithmIdentifier | RsaPssParams | EcdsaParams
   ): Promise<Uint8Array> {
     const dataString = data.toString();
     return this.createResponsePromise("signature", { data: dataString });
