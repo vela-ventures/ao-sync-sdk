@@ -26,6 +26,25 @@ export const createModalTemplate = ({
     zIndex: "999999",
   });
   modal.id = "aosync-modal";
+  const mobileStyles = document.createElement("style");
+  mobileStyles.textContent = `
+  @media (max-width: 768px) {
+    #aosync-modal-content {
+      width: 100% !important;
+      min-width: 100% !important;
+      margin: 0 !important;
+      border-radius: 16px 16px 0 0 !important;
+      position: fixed !important;
+      bottom: 0 !important;
+      max-height: 90vh !important;
+      overflow-y: auto !important;
+    }
+    #aosync-modal {
+      align-items: flex-end !important;
+    }
+  }
+`;
+  document.head.appendChild(mobileStyles);
 
   const backdrop = document.createElement("div");
   Object.assign(backdrop.style, {
@@ -49,7 +68,7 @@ export const createModalTemplate = ({
     padding: "28px",
     paddingTop: "47px",
     textAlign: "center",
-    minWidth: "300px",
+    minWidth: "364px",
     fontFamily: "Sora",
     display: "flex",
     justifyContent: "center",
@@ -57,6 +76,7 @@ export const createModalTemplate = ({
     alignItems: "center",
     backgroundRepeat: "no-repeat",
     zIndex: "10",
+    boxSizing: "border-box",
   });
   content.id = "aosync-modal-content";
 
