@@ -110,6 +110,7 @@ export default class WalletClient {
       this.reconnectListener = null;
       this.emit("connected", { status: "connected successfully" });
       this.isConnected = true;
+      this.populateWindowObject()
     }
 
     const correlationId = packet?.properties?.correlationData?.toString();
@@ -180,6 +181,7 @@ export default class WalletClient {
     }
 
     this.isConnected = true;
+    this.populateWindowObject()
     this.emit("connected", { status: "connected successfully" });
   }
 
@@ -298,6 +300,7 @@ export default class WalletClient {
     brokerUrl?: string;
     options?: IClientOptions;
   }): Promise<void> {
+    if(this.isConnected) return;
     if (this.client) {
       const qrCodeData = await QRCode.toDataURL("aosync=" + this.uid);
       this.createModal(qrCodeData);
@@ -569,6 +572,42 @@ export default class WalletClient {
   private emit(event: string, data: any): void {
     if (this.eventListeners.has(event)) {
       this.eventListeners.get(event)!.forEach((listener) => listener(data));
+    }
+  }
+
+  private populateWindowObject() {
+    if (typeof window !== 'undefined') {
+      const createMethodWrapper = (method: Function) => {
+        return async (...args: any[]) => {
+          if (!this.isConnected) {
+            throw new Error("Wallet is not connected. Please call connect() first.");
+          }
+          return method.apply(this, args);
+        };
+      };
+
+      const walletApi: any = {
+        walletName: "AOSync",
+        connect: async (permissions: PermissionType[], appInfo?: AppInfo, gateway?: GatewayConfig) => {
+          await this.connect({ permissions, appInfo, gateway });
+        },
+        disconnect: this.disconnect.bind(this),
+        getActiveAddress: createMethodWrapper(this.getActiveAddress),
+        getAllAddresses: createMethodWrapper(this.getAllAddresses),
+        getPermissions: createMethodWrapper(this.getPermissions),
+        getWalletNames: createMethodWrapper(this.getWalletNames),
+        encrypt: createMethodWrapper(this.encrypt),
+        decrypt: createMethodWrapper(this.decrypt),
+        getArweaveConfig: createMethodWrapper(this.getArweaveConfig),
+        signature: createMethodWrapper(this.signature),
+        getActivePublicKey: createMethodWrapper(this.getActivePublicKey),
+        addToken: createMethodWrapper(this.addToken),
+        sign: createMethodWrapper(this.sign),
+        dispatch: createMethodWrapper(this.dispatch),
+        signDataItem: createMethodWrapper(this.signDataItem),
+      };
+
+      window.arweaveWallet = walletApi;
     }
   }
 }
