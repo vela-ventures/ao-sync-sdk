@@ -61,6 +61,7 @@ export default class WalletClient {
       subTitle: "Scan with your beacon wallet",
       qrCodeData,
       description: "Don't have beacon yet?",
+      walletClient: this,
     });
     this.modal = modal;
   }
@@ -320,7 +321,18 @@ export default class WalletClient {
       gateway,
     };
     return new Promise((resolve, reject) => {
-      this.connectionListener = resolve;
+      this.connectionListener = (response) => {
+        if (response === "connection_canceled") {
+          if (this.client) {
+            this.client.end(false, () => {
+              this.client = null;
+            });
+          }
+          reject(new Error("Connection canceled by user"));
+          return;
+        }
+        resolve(response);
+      };
       this.client!.on("connect", async () => {
         try {
           console.log("connected broker subing to " + responseChannel);

@@ -6,12 +6,14 @@ export const createModalTemplate = ({
   qrCodeData,
   animationData,
   autoClose,
+  walletClient,
 }: {
   subTitle: string;
   description?: string;
   qrCodeData?: string;
   animationData?: any;
   autoClose?: boolean;
+  walletClient?: any;
 }) => {
   const modal = document.createElement("div");
   Object.assign(modal.style, {
@@ -57,6 +59,9 @@ export const createModalTemplate = ({
   });
   backdrop.id = "aosync-backdrop";
   backdrop.onclick = () => {
+    if (walletClient) {
+      walletClient.connectionListener("connection_canceled")
+    }
     document.body.removeChild(modal);
   };
 
