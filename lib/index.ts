@@ -10,7 +10,6 @@ import type {
   DataItem,
   AppInfo,
 } from "arconnect";
-import PaperplaneAnimation from "../public/assets/paperplane.json";
 import { connectionModalMessage, createModalTemplate } from "./templates";
 import "./fonts";
 import {
@@ -72,7 +71,7 @@ export default class WalletClient {
     const modal = createModalTemplate({
       subTitle: "Approval pending ...",
       description: " ",
-      animationData: PaperplaneAnimation,
+      animationData: true,
     });
 
     this.approvalModal = modal;

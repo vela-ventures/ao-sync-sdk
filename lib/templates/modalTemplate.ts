@@ -1,5 +1,3 @@
-import Lottie from "lottie-web";
-
 export const createModalTemplate = ({
   subTitle,
   description,
@@ -122,14 +120,10 @@ export const createModalTemplate = ({
     const lottieContainer = document.getElementById("aosync-lottie-animation");
     if (lottieContainer) {
       try {
-        Lottie.loadAnimation({
-          container: lottieContainer,
-          renderer: "svg",
-          loop: true,
-          autoplay: true,
-          path: "../paperplane.json",
-          animationData: animationData,
-        });
+        const img = document.createElement('img');
+        img.src = "https://arweave.net/-aUnkuoQ6Il9Ksj0Aa0kw43xoaIsV5JmCgA6rOoP7dI";
+        img.style.width = '250px';
+        lottieContainer.appendChild(img);
       } catch (error) {
         console.log(error);
       }
