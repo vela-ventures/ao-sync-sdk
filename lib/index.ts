@@ -36,6 +36,7 @@ export default class WalletClient {
   private isConnected: boolean;
   private reconnectionTimeout: NodeJS.Timeout | null;
   private connectOptions: ConnectionOptions;
+  private browserWalletBackup: Window["arweaveWallet"];
 
   constructor(responseTimeoutMs = 30000, txTimeoutMs = 300000) {
     this.client = null;
@@ -110,7 +111,7 @@ export default class WalletClient {
       this.reconnectListener = null;
       this.emit("connected", { status: "connected successfully" });
       this.isConnected = true;
-      this.populateWindowObject()
+      this.populateWindowObject();
     }
 
     const correlationId = packet?.properties?.correlationData?.toString();
@@ -181,7 +182,7 @@ export default class WalletClient {
     }
 
     this.isConnected = true;
-    this.populateWindowObject()
+    this.populateWindowObject();
     this.emit("connected", { status: "connected successfully" });
   }
 
@@ -255,7 +256,7 @@ export default class WalletClient {
           this.responseListeners.delete(correlationData);
           reject(new Error(`${action} timeout`));
         }
-        if(isTransaction){
+        if (isTransaction) {
           if (document.getElementById("aosync-modal")) {
             connectionModalMessage("fail");
           }
@@ -300,7 +301,7 @@ export default class WalletClient {
     brokerUrl?: string;
     options?: IClientOptions;
   }): Promise<void> {
-    if(this.isConnected) return;
+    if (this.isConnected) return;
     if (this.client) {
       const qrCodeData = await QRCode.toDataURL("aosync=" + this.uid);
       this.createModal(qrCodeData);
@@ -446,6 +447,10 @@ export default class WalletClient {
   }
 
   public async disconnect(): Promise<void> {
+    if (this.browserWalletBackup) {
+      window.arweaveWallet = this.browserWalletBackup;
+    }
+
     if (!this.client) {
       console.warn("No active MQTT connection to disconnect.");
       return;
@@ -587,11 +592,13 @@ export default class WalletClient {
   }
 
   private populateWindowObject() {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       const createMethodWrapper = (method: Function) => {
         return async (...args: any[]) => {
           if (!this.isConnected) {
-            throw new Error("Wallet is not connected. Please call connect() first.");
+            throw new Error(
+              "Wallet is not connected. Please call connect() first."
+            );
           }
           return method.apply(this, args);
         };
@@ -599,7 +606,11 @@ export default class WalletClient {
 
       const walletApi: any = {
         walletName: "AOSync",
-        connect: async (permissions: PermissionType[], appInfo?: AppInfo, gateway?: GatewayConfig) => {
+        connect: async (
+          permissions: PermissionType[],
+          appInfo?: AppInfo,
+          gateway?: GatewayConfig
+        ) => {
           await this.connect({ permissions, appInfo, gateway });
         },
         disconnect: this.disconnect.bind(this),
@@ -617,6 +628,10 @@ export default class WalletClient {
         dispatch: createMethodWrapper(this.dispatch),
         signDataItem: createMethodWrapper(this.signDataItem),
       };
+
+      if (window.arweaveWallet) {
+        this.browserWalletBackup = window.arweaveWallet;
+      }
 
       window.arweaveWallet = walletApi;
     }
