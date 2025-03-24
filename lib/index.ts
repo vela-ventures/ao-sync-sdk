@@ -108,10 +108,10 @@ export default class WalletClient {
       this.reconnectListener?.corellationId
     ) {
       clearTimeout(this.reconnectionTimeout);
+      this.isConnected = true;
       this.populateWindowObject();
       this.reconnectListener = null;
       this.emit("connected", { status: "connected successfully" });
-      this.isConnected = true;
     }
 
     const correlationId = packet?.properties?.correlationData?.toString();
@@ -159,6 +159,7 @@ export default class WalletClient {
   }
 
   private async handleConnectResponse(packet: IPublishPacket): Promise<void> {
+    this.isConnected = true;
     this.populateWindowObject();
     if (this.connectionListener) {
       this.connectionListener("connected");
@@ -182,7 +183,6 @@ export default class WalletClient {
       await this.publishMessage(topic, message, publishOptions);
     }
 
-    this.isConnected = true;
     this.emit("connected", { status: "connected successfully" });
   }
 
