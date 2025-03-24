@@ -58,7 +58,7 @@ export const createModalTemplate = ({
   backdrop.id = "aosync-backdrop";
   backdrop.onclick = () => {
     if (walletClient) {
-      walletClient.connectionListener("connection_canceled")
+      walletClient.connectionListener("connection_canceled");
     }
     document.body.removeChild(modal);
   };
@@ -120,9 +120,10 @@ export const createModalTemplate = ({
     const lottieContainer = document.getElementById("aosync-lottie-animation");
     if (lottieContainer) {
       try {
-        const img = document.createElement('img');
-        img.src = "https://arweave.net/-aUnkuoQ6Il9Ksj0Aa0kw43xoaIsV5JmCgA6rOoP7dI";
-        img.style.width = '250px';
+        const img = document.createElement("img");
+        img.src =
+          "https://arweave.net/-aUnkuoQ6Il9Ksj0Aa0kw43xoaIsV5JmCgA6rOoP7dI";
+        img.style.width = "250px";
         lottieContainer.appendChild(img);
       } catch (error) {
         console.log(error);
@@ -131,7 +132,9 @@ export const createModalTemplate = ({
   }
   if (autoClose) {
     setTimeout(() => {
-      document.body.removeChild(modal);
+      if (modal) {
+        document.body.removeChild(modal);
+      }
       if (document.getElementById("aosync-modal")) {
         document.body.removeChild(document.getElementById("aosync-modal"));
       }
