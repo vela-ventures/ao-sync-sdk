@@ -108,10 +108,10 @@ export default class WalletClient {
       this.reconnectListener?.corellationId
     ) {
       clearTimeout(this.reconnectionTimeout);
+      this.populateWindowObject();
       this.reconnectListener = null;
       this.emit("connected", { status: "connected successfully" });
       this.isConnected = true;
-      this.populateWindowObject();
     }
 
     const correlationId = packet?.properties?.correlationData?.toString();
@@ -159,6 +159,7 @@ export default class WalletClient {
   }
 
   private async handleConnectResponse(packet: IPublishPacket): Promise<void> {
+    this.populateWindowObject();
     if (this.connectionListener) {
       this.connectionListener("connected");
     }
@@ -182,7 +183,6 @@ export default class WalletClient {
     }
 
     this.isConnected = true;
-    this.populateWindowObject();
     this.emit("connected", { status: "connected successfully" });
   }
 
@@ -335,7 +335,6 @@ export default class WalletClient {
       };
       this.client!.on("connect", async () => {
         try {
-          console.log("connected broker subing to " + responseChannel);
           await new Promise<void>((res, rej) => {
             this.client!.subscribe(responseChannel, (err) => {
               err ? rej(err) : res();
@@ -405,9 +404,7 @@ export default class WalletClient {
       this.client!.on("connect", async () => {
         try {
           const correlationData = uuidv4();
-          console.log("corellationData created " + correlationData);
           this.reconnectListener = { corellationId: correlationData, resolve };
-          console.log("connected broker subing to " + responseChannel);
           await new Promise<void>((res, rej) => {
             this.client!.subscribe(responseChannel, (err) => {
               err ? rej(err) : res();
