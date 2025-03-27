@@ -37,6 +37,12 @@ export default class WalletClient {
   private reconnectionTimeout: NodeJS.Timeout | null;
   private connectOptions: ConnectionOptions;
   private browserWalletBackup: Window["arweaveWallet"];
+  private pendingRequests: Array<{
+    method: string;
+    args: any[];
+    resolve: (value: any) => void;
+    reject: (reason: any) => void;
+  }>;
 
   constructor(responseTimeoutMs = 30000, txTimeoutMs = 300000) {
     this.client = null;
@@ -54,6 +60,7 @@ export default class WalletClient {
     this.isConnected = false;
     this.reconnectionTimeout = null;
     this.connectOptions = null;
+    this.pendingRequests = [];
   }
 
   private createModal(qrCodeData: string, styles?: ModalStyles): void {
@@ -108,9 +115,10 @@ export default class WalletClient {
       this.reconnectListener?.corellationId
     ) {
       clearTimeout(this.reconnectionTimeout);
+      this.processPendingRequests();
       this.isConnected = true;
-      this.populateWindowObject();
       this.reconnectListener = null;
+      this.populateWindowObject();
       this.emit("connected", { status: "connected successfully" });
     }
 
@@ -213,6 +221,17 @@ export default class WalletClient {
     action: string,
     payload: any = {}
   ): Promise<T> {
+    if (sessionStorage.getItem("aosync-topic-id") && !this.client) {
+      return new Promise((resolve, reject) => {
+        this.pendingRequests.push({
+          method: action,
+          args: [payload],
+          resolve,
+          reject,
+        });
+      });
+    }
+
     const correlationData = uuidv4();
     const topic = this.uid;
 
@@ -223,7 +242,7 @@ export default class WalletClient {
 
     return new Promise((resolve, reject) => {
       if (!this.client) {
-        reject(new Error("Not connected to MQTT broker"));
+        reject(new Error(`Not connected to MQTT broker`));
         return;
       }
 
@@ -361,91 +380,125 @@ export default class WalletClient {
 
     const sessionStorageTopicId = sessionStorage.getItem("aosync-topic-id");
     if (sessionStorageTopicId === null) return;
-    this.uid = sessionStorageTopicId;
-    const responseChannel = `${this.uid}/response`;
 
-    if (this.client) {
+    try {
+      this.uid = sessionStorageTopicId;
+      this.populateWindowObject();
+      const responseChannel = `${this.uid}/response`;
+
+      if (this.client) {
+        return new Promise((resolve, reject) => {
+          try {
+            const correlationData = uuidv4();
+            this.reconnectListener = {
+              corellationId: correlationData,
+              resolve,
+            };
+
+            this.reconnectionTimeout = setTimeout(async () => {
+              if (this.isConnected) return;
+              console.warn("No response received during reconnection attempt");
+              clearTimeout(this.reconnectionTimeout);
+              try {
+                await this.disconnect();
+              } catch (err) {
+                reject(err);
+                return;
+              }
+              reject(new Error("Reconnection timeout"));
+            }, 3000);
+
+            this.publishMessage(
+              this.uid,
+              { action: "getActiveAddress", correlationData: correlationData },
+              {
+                properties: {
+                  correlationData: Buffer.from(correlationData, "utf-8"),
+                },
+              }
+            );
+          } catch (err) {
+            reject(err);
+          }
+        });
+      }
+
+      this.client = mqtt.connect(brokerUrl, options);
       return new Promise((resolve, reject) => {
-        try {
-          const correlationData = uuidv4();
-          console.log("corellationData created " + correlationData);
-          this.reconnectListener = { corellationId: correlationData, resolve };
-
-          this.reconnectionTimeout = setTimeout(async () => {
-            if (this.isConnected) return;
-            console.warn("No response received during reconnection attempt");
-            clearTimeout(this.reconnectionTimeout);
-            try {
-              await this.disconnect();
-            } catch (err) {
-              reject(err);
-              return;
-            }
-            reject(new Error("Reconnection timeout"));
-          }, 3000);
-
-          this.publishMessage(
-            this.uid,
-            { action: "getActiveAddress", correlationData: correlationData },
-            {
-              properties: {
-                correlationData: Buffer.from(correlationData, "utf-8"),
-              },
-            }
-          );
-        } catch (err) {
-          reject(err);
-        }
-      });
-    }
-
-    this.client = mqtt.connect(brokerUrl, options);
-    return new Promise((resolve, reject) => {
-      this.client!.on("connect", async () => {
-        try {
-          const correlationData = uuidv4();
-          this.reconnectListener = { corellationId: correlationData, resolve };
-          await new Promise<void>((res, rej) => {
-            this.client!.subscribe(responseChannel, (err) => {
-              err ? rej(err) : res();
+        this.client!.on("connect", async () => {
+          try {
+            const correlationData = uuidv4();
+            this.reconnectListener = {
+              corellationId: correlationData,
+              resolve,
+            };
+            await new Promise<void>((res, rej) => {
+              this.client!.subscribe(responseChannel, (err) => {
+                err ? rej(err) : res();
+              });
             });
-          });
 
-          this.reconnectionTimeout = setTimeout(async () => {
-            console.warn("No response received during reconnection attempt");
-            clearTimeout(this.reconnectionTimeout);
-            try {
-              await this.disconnect();
-            } catch (err) {
-              reject(err);
-              return;
-            }
-            reject(new Error("Reconnection timeout"));
-          }, 3000);
+            this.reconnectionTimeout = setTimeout(async () => {
+              console.warn("No response received during reconnection attempt");
+              clearTimeout(this.reconnectionTimeout);
+              try {
+                await this.disconnect();
+              } catch (err) {
+                reject(err);
+                return;
+              }
+              reject(new Error("Reconnection timeout"));
+            }, 3000);
 
-          this.publishMessage(
-            this.uid,
-            { action: "getActiveAddress", correlationData: correlationData },
-            {
-              properties: {
-                correlationData: Buffer.from(correlationData, "utf-8"),
-              },
-            }
-          );
+            this.publishMessage(
+              this.uid,
+              { action: "getActiveAddress", correlationData: correlationData },
+              {
+                properties: {
+                  correlationData: Buffer.from(correlationData, "utf-8"),
+                },
+              }
+            );
 
-          this.client!.on("message", this.handleMQTTMessage.bind(this));
-        } catch (err) {
-          reject(err);
-        }
+            this.client!.on("message", this.handleMQTTMessage.bind(this));
+          } catch (err) {
+            reject(err);
+          }
+        });
+
+        this.client!.on("error", reject);
       });
+    } catch (error) {
+      this.pendingRequests.forEach((request) => {
+        request.reject(new Error("Reconnection failed"));
+      });
+      this.pendingRequests = [];
+      this.disconnect();
+      throw error;
+    }
+  }
 
-      this.client!.on("error", reject);
-    });
+  private async processPendingRequests(): Promise<void> {
+    const requests = [...this.pendingRequests];
+    this.pendingRequests = [];
+
+    for (const request of requests) {
+      try {
+        const result = await this[request.method](...request.args);
+        request.resolve(result);
+      } catch (error) {
+        request.reject(error);
+      }
+    }
   }
 
   public async disconnect(): Promise<void> {
     if (this.browserWalletBackup) {
       window.arweaveWallet = this.browserWalletBackup;
+    }
+
+    if (sessionStorage.getItem("aosync-topic-id")) {
+      sessionStorage.removeItem("aosync-topic-id");
     }
 
     if (!this.client) {
@@ -474,7 +527,6 @@ export default class WalletClient {
                 )
               );
               this.handleDisconnectResponse("disconnected from wallet");
-              sessionStorage.removeItem("aosync-topic-id");
               this.responseListeners.clear();
 
               this.clearAllTimeouts();
@@ -590,6 +642,7 @@ export default class WalletClient {
 
   private populateWindowObject() {
     if (typeof window !== "undefined") {
+      if (window?.arweaveWallet?.walletName === "AOSync") return;
       const createMethodWrapper = (method: Function) => {
         return async (...args: any[]) => {
           if (!this.isConnected) {
