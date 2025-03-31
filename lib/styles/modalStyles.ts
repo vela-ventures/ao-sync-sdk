@@ -1,4 +1,4 @@
-export const modalStyles = {
+export const modalStyles: any = {
   modal: {
     position: "fixed",
     top: "0",
@@ -81,6 +81,10 @@ export const modalStyles = {
     boxSizing: "border-box",
   },
 };
+
+if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    // modalStyles.content.backgroundColor = "#0A0B19"
+}
 
 export const mobileStylesCSS = `
     @media (max-width: 768px) {

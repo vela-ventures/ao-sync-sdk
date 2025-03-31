@@ -11,6 +11,23 @@ export interface ModalTemplateProps {
   walletClient?: any;
 }
 
+const modalCSS = `
+  .aosync-modal-fade-in {
+    animation: fadeIn 0.1s ease;
+  }
+  .aosync-modal-fade-out {
+    animation: fadeOut 0.2s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+`;
+
 export const createModalTemplate = ({
   subTitle,
   description,
@@ -19,23 +36,21 @@ export const createModalTemplate = ({
   autoClose,
   walletClient,
 }: ModalTemplateProps) => {
+  if (!document.getElementById("aosync-modal-styles")) {
+    const style = document.createElement("style");
+    style.id = "aosync-modal-styles";
+    style.textContent = modalCSS + mobileStylesCSS;
+    document.head.appendChild(style);
+  }
+
   const modal = document.createElement("div");
   Object.assign(modal.style, modalStyles.modal);
-  modal.id = "aosync-modal";
-
-  const mobileStyles = document.createElement("style");
-  mobileStyles.textContent = mobileStylesCSS;
-  document.head.appendChild(mobileStyles);
+  modal.className = "aosync-modal-fade-in";
+  modal.id = `aosync-modal-${Date.now()}`;
 
   const backdrop = document.createElement("div");
   Object.assign(backdrop.style, modalStyles.backdrop);
-  backdrop.id = "aosync-backdrop";
-  backdrop.onclick = () => {
-    if (walletClient) {
-      walletClient.connectionListener("connection_canceled");
-    }
-    document.body.removeChild(modal);
-  };
+  backdrop.onclick = () => closeModal(modal, walletClient);
 
   const content = document.createElement("div");
   Object.assign(content.style, modalStyles.content);
@@ -70,36 +85,34 @@ export const createModalTemplate = ({
   modal.appendChild(content);
   document.body.appendChild(modal);
 
-  handleAnimationData(animationData);
-  handleAutoClose(autoClose, modal);
+  if (animationData) {
+    const lottieContainer = document.getElementById("aosync-lottie-animation");
+    if (lottieContainer) {
+      const img = document.createElement("img");
+      img.src = ICONS.loadingAnimation;
+      img.style.width = "100%";
+      lottieContainer.appendChild(img);
+    }
+  }
+
+  if (autoClose) {
+    setTimeout(() => {
+      closeModal(modal);
+      if (document.getElementById("aosync-modal")) {
+        document.body.removeChild(document.getElementById("aosync-modal"));
+      }
+    }, 1000);
+  }
 
   return modal;
 };
 
-function handleAnimationData(animationData: any) {
-  if (animationData) {
-    const lottieContainer = document.getElementById("aosync-lottie-animation");
-    if (lottieContainer) {
-      try {
-        const img = document.createElement("img");
-        img.src = ICONS.loadingAnimation;
-        img.style.width = "100%";
-        lottieContainer.appendChild(img);
-      } catch (error) {
-        console.log(error);
-      }
-    }
+function closeModal(modal: HTMLElement, walletClient?: any) {
+  if (walletClient) {
+    walletClient.connectionListener("connection_canceled");
   }
-}
-
-function handleAutoClose(autoClose: boolean | undefined, modal: HTMLElement) {
-  if (autoClose) {
-    setTimeout(() => {
-      if (document.getElementById("aosync-modal")) {
-        document.body.removeChild(modal);
-      }
-    }, 1000);
-  }
+  modal.className = "aosync-modal-fade-out";
+  setTimeout(() => modal.remove(), 150);
 }
 
 export function connectionModalMessage(modalMessage: "success" | "fail"): void {
@@ -107,25 +120,19 @@ export function connectionModalMessage(modalMessage: "success" | "fail"): void {
     document.getElementById("aosync-beacon-connection-qrCode") ||
     document.getElementById("aosync-lottie-animation");
 
-  const modal = document.getElementById("aosync-modal");
+  if (!qrCode) return;
 
-  const modalDescription = document.getElementById(
-    "aosync-beacon-modal-description"
-  );
+  const modal = qrCode.closest('[id^="aosync-modal-"]') as HTMLElement;
+  if (!modal) return;
+
   const statusMark = document.createElement("div");
   Object.assign(statusMark.style, modalStyles.statusMark);
+  statusMark.className = "aosync-modal-fade-in";
 
-  if (modalDescription) {
-    modalDescription!.style.visibility = "hidden";
-  }
-  if (modalMessage === "success") {
-    statusMark.innerHTML = ICONS.qrCode.success;
-  } else {
-    statusMark.innerHTML = ICONS.qrCode.fail;
-  }
-  qrCode?.replaceWith(statusMark);
+  statusMark.innerHTML =
+    modalMessage === "success" ? ICONS.qrCode.success : ICONS.qrCode.fail;
 
-  setTimeout(() => {
-    document.body.removeChild(modal);
-  }, 1000);
+  qrCode.replaceWith(statusMark);
+
+  setTimeout(() => closeModal(modal), 1000);
 }
