@@ -80,10 +80,25 @@ export const modalStyles: any = {
     paddingBottom: "30px",
     boxSizing: "border-box",
   },
+
+  modalLink: {
+    color: "#09084B",
+  },
 };
 
-if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    // modalStyles.content.backgroundColor = "#0A0B19"
+if (
+  window.matchMedia &&
+  window.matchMedia("(prefers-color-scheme: dark)").matches
+) {
+  modalStyles.content.backgroundImage =
+    "url(https://arweave.net/fqogTk0hEVP6YXgMsfsucioYUfOd4gVHHJvd8pG-Dg4)";
+  modalStyles.content.backgroundColor = "#0A0B19";
+  modalStyles.iconContainer.backgroundColor = "#232330";
+  modalStyles.title.color = "#ffffff";
+  modalStyles.description.color = "#ffffff";
+  modalStyles.subtitle.color = "rgba(255, 255, 255, 0.3)";
+  modalStyles.modalLink.color = "#4969FF";
+  modalStyles.backdrop.backgroundColor = "rgba(0, 0, 0, 0.3)";
 }
 
 export const mobileStylesCSS = `

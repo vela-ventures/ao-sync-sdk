@@ -46,7 +46,7 @@ export const createModalTemplate = ({
   const modal = document.createElement("div");
   Object.assign(modal.style, modalStyles.modal);
   modal.className = "aosync-modal-fade-in";
-  modal.id = `aosync-modal-${Date.now()}`;
+  modal.id = `aosync-modal-container`;
 
   const backdrop = document.createElement("div");
   Object.assign(backdrop.style, modalStyles.backdrop);
@@ -75,7 +75,7 @@ export const createModalTemplate = ({
      }
      <div style="${objectToInlineStyle(modalStyles.description)}">
        <span id="aosync-beacon-modal-description">${description}</span>
-       <a href="https://beaconwallet.app" target="_blank" style="color: #09084B; text-decoration: none; display: block; margin-top: 8px;">
+       <a href="https://beaconwallet.app" target="_blank" style="${objectToInlineStyle(modalStyles.modalLink)} text-decoration: none; display: block; margin-top: 8px;">
          beaconwallet.app
        </a>
      </div>
@@ -98,8 +98,8 @@ export const createModalTemplate = ({
   if (autoClose) {
     setTimeout(() => {
       closeModal(modal);
-      if (document.getElementById("aosync-modal")) {
-        document.body.removeChild(document.getElementById("aosync-modal"));
+      if (document.getElementById("aosync-modal-container")) {
+        document.body.removeChild(document.getElementById("aosync-modal-container"));
       }
     }, 1000);
   }
@@ -122,7 +122,7 @@ export function connectionModalMessage(modalMessage: "success" | "fail"): void {
 
   if (!qrCode) return;
 
-  const modal = qrCode.closest('[id^="aosync-modal-"]') as HTMLElement;
+  const modal = document.getElementById("aosync-modal-container");
   if (!modal) return;
 
   const statusMark = document.createElement("div");
