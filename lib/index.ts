@@ -43,6 +43,7 @@ export default class WalletClient {
     resolve: (value: any) => void;
     reject: (reason: any) => void;
   }>;
+  private isDarkMode: boolean;
 
   constructor(responseTimeoutMs = 30000, txTimeoutMs = 300000) {
     this.client = null;
@@ -61,6 +62,9 @@ export default class WalletClient {
     this.reconnectionTimeout = null;
     this.connectOptions = null;
     this.pendingRequests = [];
+    this.isDarkMode =
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches;
   }
 
   private createModal(qrCodeData: string, styles?: ModalStyles): void {
@@ -331,7 +335,20 @@ export default class WalletClient {
     this.client = mqtt.connect(brokerUrl, options);
     this.uid = uuidv4();
     const responseChannel = `${this.uid}/response`;
-    const qrCodeData = await QRCode.toDataURL("aosync=" + this.uid);
+    let qrCodeOptions = {};
+    if (this.isDarkMode) {
+      qrCodeOptions = {
+        color: { dark: "#FFFFFF", light: "#0A0B19" },
+      };
+    } else {
+      qrCodeOptions = {
+        color: { dark: "#0A0B19", light: "#FFFFFF" },
+      };
+    }
+    const qrCodeData = await QRCode.toDataURL(
+      "aosync=" + this.uid,
+      qrCodeOptions
+    );
     this.createModal(qrCodeData);
 
     this.connectOptions = {
