@@ -75,7 +75,7 @@ export const createModalTemplate = ({
      }
      <div style="${objectToInlineStyle(modalStyles.description)}">
        <span id="aosync-beacon-modal-description">${description}</span>
-       <a href="https://beaconwallet.app" target="_blank" style="${objectToInlineStyle(modalStyles.modalLink)} text-decoration: none; display: block; margin-top: 8px;">
+       <a href="https://beaconwallet.app" target="_blank" style="${objectToInlineStyle(modalStyles.modalLink)}; text-decoration: none; display: block; margin-top: 8px;">
          beaconwallet.app
        </a>
      </div>

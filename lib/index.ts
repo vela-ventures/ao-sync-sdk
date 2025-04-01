@@ -201,6 +201,7 @@ export default class WalletClient {
 
   private async handleDisconnectResponse(reason: string): Promise<void> {
     this.isConnected = false;
+    this.approvalModal = null;
     this.emit("disconnected", { reason });
     const modal = createModalTemplate({
       subTitle: "Beacon wallet disconnected",

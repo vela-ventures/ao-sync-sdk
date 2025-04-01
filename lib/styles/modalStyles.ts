@@ -97,7 +97,7 @@ if (
   modalStyles.iconContainer.backgroundColor = "#232330";
   modalStyles.title.color = "#ffffff";
   modalStyles.description.color = "#ffffff";
-  modalStyles.subtitle.color = "rgba(255, 255, 255, 0.3)";
+  modalStyles.subtitle.color = "#84858C";
   modalStyles.modalLink.color = "#4969FF";
   modalStyles.backdrop.backgroundColor = "rgba(0, 0, 0, 0.3)";
 }
