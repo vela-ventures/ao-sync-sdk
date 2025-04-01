@@ -22,7 +22,7 @@ import {
 
 export default class WalletClient {
   private client: MqttClient | null;
-  private uid: string | null;
+  public uid: string | null;
   private qrCode: Promise<string> | null;
   private modal: HTMLDivElement | null;
   private approvalModal: HTMLDivElement | null;
@@ -63,8 +63,9 @@ export default class WalletClient {
     this.connectOptions = null;
     this.pendingRequests = [];
     this.isDarkMode =
-      window.matchMedia &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches;
+      typeof window !== "undefined" &&
+      window?.matchMedia &&
+      window?.matchMedia("(prefers-color-scheme: dark)").matches;
   }
 
   private createModal(qrCodeData: string, styles?: ModalStyles): void {

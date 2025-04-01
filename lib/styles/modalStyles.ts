@@ -87,8 +87,9 @@ export const modalStyles: any = {
 };
 
 if (
-  window.matchMedia &&
-  window.matchMedia("(prefers-color-scheme: dark)").matches
+  typeof window !== "undefined" &&
+  window?.matchMedia &&
+  window?.matchMedia("(prefers-color-scheme: dark)").matches
 ) {
   modalStyles.content.backgroundImage =
     "url(https://arweave.net/fqogTk0hEVP6YXgMsfsucioYUfOd4gVHHJvd8pG-Dg4)";
