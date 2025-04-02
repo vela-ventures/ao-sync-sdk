@@ -44,6 +44,7 @@ export default class WalletClient {
     reject: (reason: any) => void;
   }>;
   private isDarkMode: boolean;
+  public sessionActive: boolean;
 
   constructor(responseTimeoutMs = 30000, txTimeoutMs = 300000) {
     this.client = null;
@@ -66,6 +67,15 @@ export default class WalletClient {
       typeof window !== "undefined" &&
       window?.matchMedia &&
       window?.matchMedia("(prefers-color-scheme: dark)").matches;
+    this.sessionActive =
+      typeof window !== "undefined" &&
+      !!sessionStorage.getItem("aosync-topic-id");
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem(
+        "aosync-session-active",
+        `${!!sessionStorage.getItem("aosync-topic-id")}`
+      );
+    }
   }
 
   private createModal(qrCodeData: string, styles?: ModalStyles): void {
@@ -354,6 +364,8 @@ export default class WalletClient {
     };
 
     this.client = mqtt.connect(brokerUrl, options);
+    this.sessionActive = true;
+    sessionStorage.setItem("aosync-session-active", "true");
 
     const responseChannel = `${this.uid}/response`;
     let qrCodeOptions = {};
@@ -537,6 +549,8 @@ export default class WalletClient {
 
     if (sessionStorage.getItem("aosync-topic-id")) {
       sessionStorage.removeItem("aosync-topic-id");
+      this.sessionActive = false;
+      sessionStorage.removeItem("aosync-session-active");
     }
 
     if (!this.client) {
