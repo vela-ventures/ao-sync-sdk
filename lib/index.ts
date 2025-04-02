@@ -238,6 +238,16 @@ export default class WalletClient {
       });
     }
 
+    if (!sessionStorage.getItem("aosync-topic-id") && !this.client) {
+      this.isConnected = false;
+      this.approvalModal = null;
+      this.emit("disconnected", { reson: "AOsync connection not found" });
+      if (this.browserWalletBackup) {
+        window.arweaveWallet = this.browserWalletBackup;
+      }
+      return;
+    }
+
     const correlationData = uuidv4();
     const topic = this.uid;
 
@@ -248,7 +258,7 @@ export default class WalletClient {
 
     return new Promise((resolve, reject) => {
       if (!this.client) {
-        reject(new Error(`Not connected to MQTT broker`));
+        reject(new Error(`Not connected to AOSync`));
         return;
       }
 
@@ -334,8 +344,17 @@ export default class WalletClient {
       return;
     }
 
-    this.client = mqtt.connect(brokerUrl, options);
     this.uid = uuidv4();
+    options.will = {
+      topic: this.uid,
+      payload: JSON.stringify({ action: "disconnect" }),
+      properties: {
+        willDelayInterval: 30,
+      },
+    };
+
+    this.client = mqtt.connect(brokerUrl, options);
+
     const responseChannel = `${this.uid}/response`;
     let qrCodeOptions = {};
     if (this.isDarkMode) {
@@ -521,7 +540,6 @@ export default class WalletClient {
     }
 
     if (!this.client) {
-      console.warn("No active MQTT connection to disconnect.");
       return;
     }
 
