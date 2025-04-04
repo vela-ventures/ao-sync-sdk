@@ -355,13 +355,6 @@ export default class WalletClient {
     }
 
     this.uid = uuidv4();
-    options.will = {
-      topic: this.uid,
-      payload: JSON.stringify({ action: "disconnect" }),
-      properties: {
-        willDelayInterval: 30,
-      },
-    };
 
     this.client = mqtt.connect(brokerUrl, options);
     this.sessionActive = true;
@@ -601,8 +594,7 @@ export default class WalletClient {
 
   public async getPermissions(): Promise<PermissionType[]> {
     if (!this.client) {
-      console.warn("Not connected to beacon wallet");
-      return;
+      return [];
     }
 
     return this.createResponsePromise("getPermissions");
