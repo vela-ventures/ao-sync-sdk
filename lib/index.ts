@@ -683,6 +683,10 @@ export default class WalletClient {
     }
   }
 
+  public async userTokens(): Promise<string[]> {
+    return this.createResponsePromise("userTokens");
+  }
+
   private populateWindowObject() {
     if (typeof window !== "undefined") {
       if (window?.arweaveWallet?.walletName === "AOSync") return;
@@ -720,6 +724,7 @@ export default class WalletClient {
         sign: createMethodWrapper(this.sign),
         dispatch: createMethodWrapper(this.dispatch),
         signDataItem: createMethodWrapper(this.signDataItem),
+        userTokens: createMethodWrapper(this.userTokens),
       };
 
       if (window.arweaveWallet) {
