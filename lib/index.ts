@@ -9,6 +9,8 @@ import type {
   DispatchResult,
   DataItem,
   AppInfo,
+  UserTokensResult,
+  UserTokensOptions,
 } from "arconnect";
 import { connectionModalMessage, createModalTemplate } from "./templates";
 import "./fonts";
@@ -683,7 +685,7 @@ export default class WalletClient {
     }
   }
 
-  public async userTokens(): Promise<string[]> {
+  public async userTokens(options: UserTokensOptions): Promise<UserTokensResult> {
     return this.createResponsePromise("userTokens");
   }
 
