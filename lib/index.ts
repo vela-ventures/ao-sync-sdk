@@ -21,6 +21,7 @@ import {
   ResponseListenerData,
   WalletResponse,
 } from "./types";
+import { ICONS } from "./constants/modalAssets";
 
 export default class WalletClient {
   private client: MqttClient | null;
@@ -47,6 +48,8 @@ export default class WalletClient {
   }>;
   private isDarkMode: boolean;
   public sessionActive: boolean;
+  private isAppleMobileDevice: boolean;
+  private isInappBrowser: boolean;
 
   constructor(responseTimeoutMs = 30000, txTimeoutMs = 300000) {
     this.client = null;
@@ -77,6 +80,9 @@ export default class WalletClient {
         "aosync-session-active",
         `${!!sessionStorage.getItem("aosync-topic-id")}`
       );
+      const userAgent = window.navigator.userAgent;
+      this.isAppleMobileDevice = /iPad|iPhone|iPod/.test(userAgent);
+      this.isInappBrowser = !!window["beaconwallet"]?.version;
     }
   }
 
@@ -356,6 +362,11 @@ export default class WalletClient {
       return;
     }
 
+    if (this.isAppleMobileDevice && !this.isInappBrowser) {
+      window.open(`beaconwallet://aosync?websiteURL=${window.location.href}`);
+      return;
+    }
+
     this.uid = uuidv4();
 
     this.client = mqtt.connect(brokerUrl, options);
@@ -377,7 +388,12 @@ export default class WalletClient {
       "aosync=" + this.uid,
       qrCodeOptions
     );
-    this.createModal(qrCodeData);
+
+    if (this.isAppleMobileDevice && this.isInappBrowser) {
+      this.createModal(ICONS.loadingAnimation);
+    } else {
+      this.createModal(qrCodeData);
+    }
 
     this.connectOptions = {
       permissions,
@@ -404,6 +420,10 @@ export default class WalletClient {
               err ? rej(err) : res();
             });
           });
+
+          if (this.isAppleMobileDevice && this.isInappBrowser) {
+            window["beaconwallet"]?.connect(this.uid);
+          }
 
           this.client!.on("message", this.handleMQTTMessage.bind(this));
         } catch (err) {
@@ -685,7 +705,9 @@ export default class WalletClient {
     }
   }
 
-  public async userTokens(options: UserTokensOptions): Promise<UserTokensResult> {
+  public async userTokens(
+    options: UserTokensOptions
+  ): Promise<UserTokensResult> {
     return this.createResponsePromise("userTokens");
   }
 
