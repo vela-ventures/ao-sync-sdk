@@ -706,7 +706,7 @@ export default class WalletClient {
   }
 
   public async userTokens(
-    options: UserTokensOptions
+    options?: UserTokensOptions
   ): Promise<UserTokensResult> {
     return this.createResponsePromise("userTokens");
   }
