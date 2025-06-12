@@ -21,7 +21,13 @@ import {
   ResponseListenerData,
   WalletResponse,
 } from "./types";
-import { ICONS } from "./constants/modalAssets";
+import { VERSION } from "./constants/version";
+
+declare global {
+  interface Window {
+    __AOSYNC_VERSION__?: string;
+  }
+}
 
 export default class WalletClient {
   private client: MqttClient | null;
@@ -50,6 +56,7 @@ export default class WalletClient {
   public sessionActive: boolean;
   private isAppleMobileDevice: boolean;
   private isInappBrowser: boolean;
+  private autoSign: boolean;
 
   constructor(responseTimeoutMs = 30000, txTimeoutMs = 300000) {
     this.client = null;
@@ -67,6 +74,7 @@ export default class WalletClient {
     this.isConnected = false;
     this.reconnectionTimeout = null;
     this.connectOptions = null;
+    this.autoSign = null;
     this.pendingRequests = [];
     this.isDarkMode =
       typeof window !== "undefined" &&
@@ -83,6 +91,7 @@ export default class WalletClient {
       const userAgent = window.navigator.userAgent;
       this.isAppleMobileDevice = /iPad|iPhone|iPod/.test(userAgent);
       this.isInappBrowser = !!window["beaconwallet"]?.version;
+      window.__AOSYNC_VERSION__ = VERSION;
     }
   }
 
@@ -205,15 +214,23 @@ export default class WalletClient {
       permissions: this.connectOptions.permissions,
       gateway: this.connectOptions.gateway,
     };
-
     const publishOptions = packet?.properties?.correlationData
       ? { properties: { correlationData: packet.properties.correlationData } }
       : {};
 
+    if (Buffer.isBuffer(packet.payload)) {
+      const bufferString = packet.payload.toString("utf8");
+      try {
+        const bufferJson = JSON.parse(bufferString);
+        this.autoSign = bufferJson.connectionOptions?.autoSign;
+      } catch {
+        console.log("Buffer content is not JSON");
+      }
+    }
+
     if (topic) {
       await this.publishMessage(topic, message, publishOptions);
     }
-
     this.emit("connected", { status: "connected successfully" });
   }
 
@@ -301,7 +318,16 @@ export default class WalletClient {
       }
 
       if (isTransaction) {
-        this.createApprovalModal();
+        if (this.autoSign) {
+          const actionTag = payload.dataItem.tags.find(
+            (tag) => tag.name === "Action"
+          );
+          if (actionTag?.value === "Transfer") {
+            this.createApprovalModal();
+          }
+        } else {
+          this.createApprovalModal();
+        }
       }
 
       const timeout = setTimeout(() => {
@@ -389,9 +415,7 @@ export default class WalletClient {
       qrCodeOptions
     );
 
-    if (this.isAppleMobileDevice && this.isInappBrowser) {
-      this.createModal(ICONS.loadingAnimation);
-    } else {
+    if (!this.isAppleMobileDevice && !this.isInappBrowser) {
       this.createModal(qrCodeData);
     }
 
@@ -727,6 +751,7 @@ export default class WalletClient {
 
       const walletApi: any = {
         walletName: "AOSync",
+        aosyncVersion: VERSION,
         connect: async (
           permissions: PermissionType[],
           appInfo?: AppInfo,
