@@ -19,6 +19,7 @@ import {
   ModalStyles,
   ReconnectListenerData,
   ResponseListenerData,
+  Wallet,
   WalletResponse,
 } from "./types";
 import { VERSION } from "./constants/version";
@@ -398,6 +399,11 @@ export default class WalletClient {
     this.client = mqtt.connect(brokerUrl, options);
     this.sessionActive = true;
     sessionStorage.setItem("aosync-session-active", "true");
+    window.dispatchEvent(
+      new CustomEvent("aosync-session-change", {
+        detail: { isActive: true },
+      })
+    );
 
     const responseChannel = `${this.uid}/response`;
     let qrCodeOptions = {};
@@ -590,6 +596,11 @@ export default class WalletClient {
       sessionStorage.removeItem("aosync-topic-id");
       this.sessionActive = false;
       sessionStorage.removeItem("aosync-session-active");
+      window.dispatchEvent(
+        new CustomEvent("aosync-session-change", {
+          detail: { isActive: false },
+        })
+      );
     }
 
     if (!this.client) {
@@ -648,6 +659,10 @@ export default class WalletClient {
 
   public async getWalletNames(): Promise<{ [addr: string]: string }> {
     return this.createResponsePromise("getWalletNames");
+  }
+
+  public async getWallets(): Promise<Wallet[]> {
+    return this.createResponsePromise("getWallets");
   }
 
   public async encrypt(

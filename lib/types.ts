@@ -26,3 +26,21 @@ export interface ConnectionOptions {
   appInfo?: AppInfo;
   gateway?: GatewayConfig;
 }
+
+interface PersonalWallet {
+  tokens: string[];
+  name: string;
+  type: "personal";
+  walletAddress: string;
+}
+
+interface SharedWallet {
+  name: string;
+  threshold: number;
+  type: "shared";
+  tokens: string[];
+  walletAddress: string;
+  participants: string[];
+}
+
+export type Wallet = PersonalWallet | SharedWallet;
