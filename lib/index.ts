@@ -750,6 +750,10 @@ export default class WalletClient {
     return this.createResponsePromise("userTokens");
   }
 
+  public async swapActiveWallet(walletAddress: string): Promise<string> {
+    return this.createResponsePromise("swapActiveWallet", { data: walletAddress });
+  }
+
   private populateWindowObject() {
     if (typeof window !== "undefined") {
       if (window?.arweaveWallet?.walletName === "AOSync") return;
