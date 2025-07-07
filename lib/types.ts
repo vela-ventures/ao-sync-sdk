@@ -43,4 +43,9 @@ interface SharedWallet {
   participants: string[];
 }
 
+export interface Contact {
+  walletAddress: string;
+  name: string;
+};
+
 export type Wallet = PersonalWallet | SharedWallet;

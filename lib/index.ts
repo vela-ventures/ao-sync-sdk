@@ -16,6 +16,7 @@ import { connectionModalMessage, createModalTemplate } from "./templates";
 import "./fonts";
 import {
   ConnectionOptions,
+  Contact,
   ModalStyles,
   ReconnectListenerData,
   ResponseListenerData,
@@ -751,7 +752,13 @@ export default class WalletClient {
   }
 
   public async swapActiveWallet(walletAddress: string): Promise<string> {
-    return this.createResponsePromise("swapActiveWallet", { data: walletAddress });
+    return this.createResponsePromise("swapActiveWallet", {
+      data: walletAddress,
+    });
+  }
+
+  public async getContacts(): Promise<Contact[]> {
+    return this.createResponsePromise("getContacts");
   }
 
   private populateWindowObject() {
