@@ -27,6 +27,7 @@ export const modalStyles: any = {
     paddingTop: "47px",
     textAlign: "center",
     minWidth: "364px",
+    maxWidth: "364px",
     display: "flex",
     justifyContent: "center",
     flexDirection: "column",

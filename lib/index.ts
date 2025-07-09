@@ -24,6 +24,7 @@ import {
   WalletResponse,
 } from "./types";
 import { VERSION } from "./constants/version";
+import { BEACON_MIN_VERSION } from "./constants/beacon-version";
 
 declare global {
   interface Window {
@@ -130,10 +131,6 @@ export default class WalletClient {
     const messageData = JSON.parse(message.toString()) as WalletResponse;
 
     if (messageData.action === "connect") {
-      connectionModalMessage("success");
-      if (this.modal) {
-        this.modal = null;
-      }
       await this.handleConnectResponse(packet);
       sessionStorage.setItem("aosync-topic-id", this.uid);
       return;
@@ -200,7 +197,43 @@ export default class WalletClient {
     return byteArray;
   }
 
+  private isVersionValid(version, minVersion) {
+    const v1 = version.split(".").map(Number);
+    const v2 = minVersion.split(".").map(Number);
+
+    for (let i = 0; i < 3; i++) {
+      if ((v1[i] || 0) > (v2[i] || 0)) return true;
+      if ((v1[i] || 0) < (v2[i] || 0)) return false;
+    }
+    return true;
+  }
+
   private async handleConnectResponse(packet: IPublishPacket): Promise<void> {
+    if (Buffer.isBuffer(packet.payload)) {
+      const bufferString = packet.payload.toString("utf8");
+      try {
+        const bufferJson = JSON.parse(bufferString);
+        this.autoSign = bufferJson.connectionOptions?.autoSign;
+
+        const clientVersion = bufferJson.connectionOptions?.version;
+        if (!this.isVersionValid(clientVersion, BEACON_MIN_VERSION)) {
+          createModalTemplate({
+            subTitle: `Warning`,
+            description: `The minimum supported version is ${BEACON_MIN_VERSION}, and some features may not work as expected. Please update to the latest version of the app for the best experience.`,
+            animationData: false,
+          });
+        }
+      } catch {
+        console.log("Buffer content is not JSON");
+      }
+    }
+
+    connectionModalMessage("success");
+
+    if (this.modal) {
+      this.modal = null;
+    }
+
     this.isConnected = true;
     this.populateWindowObject();
     if (this.connectionListener) {
@@ -219,16 +252,6 @@ export default class WalletClient {
     const publishOptions = packet?.properties?.correlationData
       ? { properties: { correlationData: packet.properties.correlationData } }
       : {};
-
-    if (Buffer.isBuffer(packet.payload)) {
-      const bufferString = packet.payload.toString("utf8");
-      try {
-        const bufferJson = JSON.parse(bufferString);
-        this.autoSign = bufferJson.connectionOptions?.autoSign;
-      } catch {
-        console.log("Buffer content is not JSON");
-      }
-    }
 
     if (topic) {
       await this.publishMessage(topic, message, publishOptions);

@@ -1,0 +1,1 @@
+export const BEACON_MIN_VERSION = '1.10.0';
