@@ -335,6 +335,7 @@ export default class WalletClient {
             properties: {
               correlationData: Buffer.from(correlationData, "utf-8"),
             },
+            ...(isTransaction && { retain: true }),
           }
         ).catch((err) => {
           this.responseListeners.delete(correlationData);
