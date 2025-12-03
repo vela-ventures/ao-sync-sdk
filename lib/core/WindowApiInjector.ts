@@ -8,13 +8,13 @@ export class WindowApiInjector {
     this.browserWalletBackup = undefined;
   }
 
-  public injectApi(walletClient: any, isConnected: boolean): void {
+  public injectApi(walletClient: any): void {
     if (typeof window === "undefined") return;
     if (window?.arweaveWallet?.walletName === "AOSync") return;
 
     const createMethodWrapper = (method: Function) => {
       return async (...args: any[]) => {
-        if (!isConnected) {
+        if (!walletClient.hasActiveSession()) {
           throw new Error(
             "Wallet is not connected. Please call connect() first."
           );

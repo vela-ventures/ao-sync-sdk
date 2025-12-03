@@ -3,6 +3,7 @@ import { Buffer } from "buffer";
 import mqtt from "mqtt";
 import { ResponseListenerData } from "../types";
 import { connectionModalMessage } from "../templates";
+import { SessionStorageCache } from "../utils/cache";
 
 export class RequestCoordinator {
   private responseListeners: Map<string, ResponseListenerData>;
@@ -38,6 +39,7 @@ export class RequestCoordinator {
       createApprovalModal: () => void;
       autoSign: boolean | null;
       sessionActive: boolean;
+      cache: SessionStorageCache;
     }
   ): Promise<T> {
     if (
@@ -45,12 +47,57 @@ export class RequestCoordinator {
       sessionStorage.getItem("aosync-topic-id") &&
       !context.client
     ) {
+      // Check if we have cached data for read-only queries
+      if (action === "getActiveAddress") {
+        const cachedAddress = context.cache.getActiveAddress();
+        if (cachedAddress) {
+          return Promise.resolve(cachedAddress as T);
+        }
+      } else if (action === "getAllAddresses") {
+        const cachedAddresses = context.cache.getAllAddresses();
+        if (cachedAddresses) {
+          return Promise.resolve(cachedAddresses as T);
+        }
+      } else if (action === "getWalletNames") {
+        const cachedNames = context.cache.getWalletNames();
+        if (cachedNames) {
+          return Promise.resolve(cachedNames as T);
+        }
+      } else if (action === "getPermissions") {
+        const cachedPermissions = context.cache.getPermissions();
+        if (cachedPermissions) {
+          return Promise.resolve(cachedPermissions as T);
+        }
+      }
+
+      // No cache available, queue as pending request with timeout
       return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          const index = this.pendingRequests.findIndex(
+            r => r.resolve === resolve
+          );
+          if (index !== -1) {
+            this.pendingRequests.splice(index, 1);
+          }
+          this.activeTimeouts.delete(timeout);
+          reject(new Error(`${action} timeout - no active connection`));
+        }, this.responseTimeoutMs);
+
+        this.activeTimeouts.add(timeout);
+
         this.pendingRequests.push({
           method: action,
           args: [payload],
-          resolve,
-          reject,
+          resolve: (value: any) => {
+            clearTimeout(timeout);
+            this.activeTimeouts.delete(timeout);
+            resolve(value);
+          },
+          reject: (error: any) => {
+            clearTimeout(timeout);
+            this.activeTimeouts.delete(timeout);
+            reject(error);
+          },
         });
       });
     }

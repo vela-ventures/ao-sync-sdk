@@ -255,6 +255,21 @@ export default class WalletClient {
     return this.connectionManager.getClient() !== null;
   }
 
+  public isConnected(): boolean {
+    return this.connectionManager.isClientConnected();
+  }
+
+  public getUid(): string | null {
+    return this.connectionManager.getUid();
+  }
+
+  public hasActiveSession(): boolean {
+    const hasTopicId = typeof sessionStorage !== "undefined" &&
+                       !!sessionStorage.getItem("aosync-topic-id");
+    const hasCache = this.messageHandler.getCache().hasActiveAddress();
+    return hasTopicId && hasCache;
+  }
+
   // Event Management
   public on(event: string, listener: (data: any) => void): void {
     this.eventEmitter.on(event, listener);
@@ -275,14 +290,12 @@ export default class WalletClient {
       createApprovalModal: () => this.modalManager.createApprovalModal(),
       autoSign: this.messageHandler.getAutoSign(),
       sessionActive: this.sessionActive,
+      cache: this.messageHandler.getCache(),
     });
   }
 
   public populateWindowObject(): void {
-    this.windowApiInjector.injectApi(
-      this,
-      this.connectionManager.isClientConnected()
-    );
+    this.windowApiInjector.injectApi(this);
   }
 
   public async processPendingRequests(): Promise<void> {

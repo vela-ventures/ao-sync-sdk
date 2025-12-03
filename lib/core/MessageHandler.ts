@@ -7,11 +7,13 @@ import { BEACON_MIN_VERSION } from "../constants/beacon-version";
 import { RequestCoordinator } from "./RequestCoordinator";
 import { ModalManager } from "./ModalManager";
 import { EventEmitter } from "./EventEmitter";
+import { SessionStorageCache } from "../utils/cache";
 
 export class MessageHandler {
   private autoSign: boolean | null;
   private reconnectListener: ReconnectListenerData | null;
   private reconnectionTimeout: NodeJS.Timeout | null;
+  private cache: SessionStorageCache;
 
   constructor(
     private requestCoordinator: RequestCoordinator,
@@ -21,6 +23,7 @@ export class MessageHandler {
     this.autoSign = null;
     this.reconnectListener = null;
     this.reconnectionTimeout = null;
+    this.cache = new SessionStorageCache();
   }
 
   public async handleMQTTMessage(
@@ -61,6 +64,12 @@ export class MessageHandler {
       this.reconnectListener?.corellationId
     ) {
       clearTimeout(this.reconnectionTimeout);
+
+      // Cache the wallet address from reconnect response
+      if (messageData.data && typeof messageData.data === 'string') {
+        this.cache.setActiveAddress(messageData.data);
+      }
+
       await context.processPendingRequests();
       context.setConnected(true);
       this.reconnectListener = null;
@@ -75,6 +84,18 @@ export class MessageHandler {
       const isTransaction = ["sign", "dispatch", "signDataItem"].includes(
         listenerData.action
       );
+
+      // Cache wallet data responses for offline access
+      if (listenerData.action === "getActiveAddress" && typeof messageData.data === 'string') {
+        this.cache.setActiveAddress(messageData.data);
+      } else if (listenerData.action === "getAllAddresses" && Array.isArray(messageData.data)) {
+        this.cache.setAllAddresses(messageData.data);
+      } else if (listenerData.action === "getWalletNames" && typeof messageData.data === 'object') {
+        this.cache.setWalletNames(messageData.data);
+      } else if (listenerData.action === "getPermissions" && Array.isArray(messageData.data)) {
+        this.cache.setPermissions(messageData.data);
+      }
+
       if (listenerData.action === "signDataItem") {
         const decodedData = base64UrlDecode(messageData.data);
         listenerData.resolve(decodedData);
@@ -186,5 +207,9 @@ export class MessageHandler {
 
   public getAutoSign(): boolean | null {
     return this.autoSign;
+  }
+
+  public getCache(): SessionStorageCache {
+    return this.cache;
   }
 }

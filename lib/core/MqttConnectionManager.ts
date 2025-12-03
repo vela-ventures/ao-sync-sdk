@@ -190,7 +190,34 @@ export class MqttConnectionManager {
       this.uid = sessionStorageTopicId;
       const responseChannel = `${this.uid}/response`;
 
+      // Check if we have cached address - if so, connect immediately
+      const cache = this.messageHandler.getCache();
+      const hasCachedAddress = cache.hasActiveAddress();
+
       if (this.client) {
+        // If we have cached data, resolve immediately and refresh in background
+        if (hasCachedAddress) {
+          this.isConnected = true;
+          walletClient.populateWindowObject();
+          this.modalManager.closeApprovalModal();
+          this.modalManager.closeConnectionModal();
+
+          // Send background request to refresh data (no await, fire and forget)
+          const correlationData = uuidv4();
+          this.publishMessage(
+            this.uid,
+            { action: "getActiveAddress", correlationData: correlationData },
+            {
+              properties: {
+                correlationData: Buffer.from(correlationData, "utf-8"),
+              },
+            }
+          ).catch(err => console.warn("Background refresh failed:", err));
+
+          return Promise.resolve();
+        }
+
+        // No cached data - use original timeout-based approach
         return new Promise((resolve, reject) => {
           try {
             const correlationData = uuidv4();
@@ -230,6 +257,62 @@ export class MqttConnectionManager {
       }
 
       this.client = mqtt.connect(brokerUrl, options);
+
+      // If we have cached data, resolve immediately after connecting to broker
+      if (hasCachedAddress) {
+        return new Promise((resolve, reject) => {
+          this.client!.on("connect", async () => {
+            try {
+              await new Promise<void>((res, rej) => {
+                this.client!.subscribe(responseChannel, (err) => {
+                  err ? rej(err) : res();
+                });
+              });
+
+              this.isConnected = true;
+              walletClient.populateWindowObject();
+              this.modalManager.closeApprovalModal();
+              this.modalManager.closeConnectionModal();
+
+              // Setup message handler for future messages
+              this.client!.on("message", (topic, message, packet) =>
+                this.messageHandler.handleMQTTMessage(topic, message, packet, {
+                  uid: this.uid,
+                  isConnected: this.isConnected,
+                  connectOptions: this.connectOptions,
+                  publishMessage: this.publishMessage.bind(this),
+                  populateWindowObject: () => walletClient.populateWindowObject(),
+                  disconnect: async () => walletClient.disconnect(),
+                  setConnected: (value: boolean) => {
+                    this.isConnected = value;
+                  },
+                  processPendingRequests: async () => walletClient.processPendingRequests(),
+                })
+              );
+
+              // Send background refresh request (fire and forget)
+              const correlationData = uuidv4();
+              this.publishMessage(
+                this.uid,
+                { action: "getActiveAddress", correlationData: correlationData },
+                {
+                  properties: {
+                    correlationData: Buffer.from(correlationData, "utf-8"),
+                  },
+                }
+              ).catch(err => console.warn("Background refresh failed:", err));
+
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
+          });
+
+          this.client!.on("error", reject);
+        });
+      }
+
+      // No cached data - use original timeout-based approach)
       return new Promise((resolve, reject) => {
         this.client!.on("connect", async () => {
           try {
@@ -302,6 +385,9 @@ export class MqttConnectionManager {
         sessionStorage.removeItem("aosync-topic-id");
         this.sessionActive = false;
         sessionStorage.removeItem("aosync-session-active");
+
+        this.messageHandler.getCache().clear();
+
         if (typeof window !== "undefined") {
           window.dispatchEvent(
             new CustomEvent("aosync-session-change", {
@@ -330,6 +416,8 @@ export class MqttConnectionManager {
 
             this.client!.end(false, () => {
               this.client = null;
+              this.isConnected = false;
+              this.uid = null;
 
               this.requestCoordinator.resolveAllListeners(
                 new Error("Disconnected before response was received")
