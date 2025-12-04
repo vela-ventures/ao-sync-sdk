@@ -209,7 +209,6 @@ export class MqttConnectionManager {
         if (hasCachedAddress) {
           this.isConnected = true;
           walletClient.populateWindowObject();
-          this.modalManager.closeApprovalModal();
           this.modalManager.closeConnectionModal();
 
           // Send background request to refresh data (no await, fire and forget)
@@ -281,7 +280,6 @@ export class MqttConnectionManager {
 
               this.isConnected = true;
               walletClient.populateWindowObject();
-              this.modalManager.closeApprovalModal();
               this.modalManager.closeConnectionModal();
 
               // Setup message handler for future messages

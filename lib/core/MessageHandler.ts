@@ -145,9 +145,13 @@ export class MessageHandler {
       }
     }
 
-    connectionModalMessage("success");
-
-    this.modalManager.closeConnectionModal();
+    if (typeof document !== "undefined") {
+      const qrCode = document.getElementById("aosync-beacon-connection-qrCode");
+      if (qrCode) {
+        connectionModalMessage("success");
+        this.modalManager.closeConnectionModal();
+      }
+    }
 
     context.setConnected(true);
     context.populateWindowObject();
