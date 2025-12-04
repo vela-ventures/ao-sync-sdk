@@ -35,6 +35,17 @@ export class MqttConnectionManager {
       !!sessionStorage.getItem("aosync-topic-id");
   }
 
+  private getQRCodeOptions() {
+    if (this.isDarkMode) {
+      return {
+        color: { dark: "#FFFFFF", light: "#0A0B19" },
+      };
+    }
+    return {
+      color: { dark: "#0A0B19", light: "#FFFFFF" },
+    };
+  }
+
   public async connect(
     {
       permissions = [
@@ -68,7 +79,7 @@ export class MqttConnectionManager {
   ): Promise<void> {
     if (this.isConnected) return;
     if (this.client) {
-      const qrCodeData = await QRCode.toDataURL("aosync=" + this.uid);
+      const qrCodeData = await QRCode.toDataURL("aosync=" + this.uid, this.getQRCodeOptions());
       this.modalManager.createConnectionModal(qrCodeData, walletClient);
       console.warn("Already connected to the broker.");
       return;
@@ -97,19 +108,9 @@ export class MqttConnectionManager {
     }
 
     const responseChannel = `${this.uid}/response`;
-    let qrCodeOptions = {};
-    if (this.isDarkMode) {
-      qrCodeOptions = {
-        color: { dark: "#FFFFFF", light: "#0A0B19" },
-      };
-    } else {
-      qrCodeOptions = {
-        color: { dark: "#0A0B19", light: "#FFFFFF" },
-      };
-    }
     const qrCodeData = await QRCode.toDataURL(
       "aosync=" + this.uid,
-      qrCodeOptions
+      this.getQRCodeOptions()
     );
 
     if (!this.isAppleMobileDevice && !this.isInappBrowser) {

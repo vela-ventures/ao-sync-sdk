@@ -151,6 +151,10 @@ export default class WalletClient {
     await this.connectionManager.disconnect(this);
   }
 
+  public cancelConnection(): void {
+    this.connectionManager.callConnectionListener("connection_canceled");
+  }
+
   // Wallet Info Query Methods
   public async getActiveAddress(): Promise<string> {
     return this.createResponsePromise("getActiveAddress");

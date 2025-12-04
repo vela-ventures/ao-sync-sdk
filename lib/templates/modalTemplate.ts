@@ -108,8 +108,8 @@ export const createModalTemplate = ({
 };
 
 function closeModal(modal: HTMLElement, walletClient?: any) {
-  if (walletClient) {
-    walletClient.connectionListener("connection_canceled");
+  if (walletClient && typeof walletClient.cancelConnection === "function") {
+    walletClient.cancelConnection();
   }
   modal.className = "aosync-modal-fade-out";
   setTimeout(() => modal.remove(), 150);
