@@ -1,8 +1,11 @@
+import type { ConnectionOptions } from "../types";
+
 const CACHE_KEYS = {
   ACTIVE_ADDRESS: 'aosync-cached-address',
   ALL_ADDRESSES: 'aosync-cached-all-addresses',
   WALLET_NAMES: 'aosync-cached-wallet-names',
   PERMISSIONS: 'aosync-cached-permissions',
+  CONNECT_OPTIONS: 'aosync-cached-connect-options',
 } as const;
 
 export class SessionStorageCache {
@@ -68,12 +71,29 @@ export class SessionStorageCache {
     sessionStorage.setItem(CACHE_KEYS.PERMISSIONS, JSON.stringify(permissions));
   }
 
+  public getConnectOptions(): ConnectionOptions | null {
+    if (!this.isAvailable()) return null;
+    const cached = sessionStorage.getItem(CACHE_KEYS.CONNECT_OPTIONS);
+    if (!cached) return null;
+    try {
+      return JSON.parse(cached);
+    } catch {
+      return null;
+    }
+  }
+
+  public setConnectOptions(options: ConnectionOptions): void {
+    if (!this.isAvailable()) return;
+    sessionStorage.setItem(CACHE_KEYS.CONNECT_OPTIONS, JSON.stringify(options));
+  }
+
   public clear(): void {
     if (!this.isAvailable()) return;
     sessionStorage.removeItem(CACHE_KEYS.ACTIVE_ADDRESS);
     sessionStorage.removeItem(CACHE_KEYS.ALL_ADDRESSES);
     sessionStorage.removeItem(CACHE_KEYS.WALLET_NAMES);
     sessionStorage.removeItem(CACHE_KEYS.PERMISSIONS);
+    sessionStorage.removeItem(CACHE_KEYS.CONNECT_OPTIONS);
   }
 
   public hasActiveAddress(): boolean {

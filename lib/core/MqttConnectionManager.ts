@@ -121,6 +121,10 @@ export class MqttConnectionManager {
       appInfo,
       gateway,
     };
+
+    // Cache connect options for reconnection after page reload
+    this.messageHandler.getCache().setConnectOptions(this.connectOptions);
+
     return new Promise((resolve, reject) => {
       this.connectionListener = (response) => {
         if (response === "connection_canceled") {
@@ -190,8 +194,14 @@ export class MqttConnectionManager {
       this.uid = sessionStorageTopicId;
       const responseChannel = `${this.uid}/response`;
 
-      // Check if we have cached address - if so, connect immediately
+      // Restore cached connect options
       const cache = this.messageHandler.getCache();
+      const cachedConnectOptions = cache.getConnectOptions();
+      if (cachedConnectOptions) {
+        this.connectOptions = cachedConnectOptions;
+      }
+
+      // Check if we have cached address - if so, connect immediately
       const hasCachedAddress = cache.hasActiveAddress();
 
       if (this.client) {
