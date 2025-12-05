@@ -86,6 +86,13 @@ export class MessageHandler {
       );
 
       // Cache wallet data responses for offline access
+      const isCacheableQuery = [
+        "getActiveAddress",
+        "getAllAddresses",
+        "getWalletNames",
+        "getPermissions"
+      ].includes(listenerData.action);
+
       if (listenerData.action === "getActiveAddress" && typeof messageData.data === 'string') {
         this.cache.setActiveAddress(messageData.data);
       } else if (listenerData.action === "getAllAddresses" && Array.isArray(messageData.data)) {
@@ -94,6 +101,13 @@ export class MessageHandler {
         this.cache.setWalletNames(messageData.data);
       } else if (listenerData.action === "getPermissions" && Array.isArray(messageData.data)) {
         this.cache.setPermissions(messageData.data);
+      }
+
+      if (isCacheableQuery) {
+        this.eventEmitter.emit("cacheUpdated", {
+          action: listenerData.action,
+          data: messageData.data
+        });
       }
 
       if (listenerData.action === "signDataItem") {

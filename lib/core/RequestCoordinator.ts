@@ -25,6 +25,87 @@ export class RequestCoordinator {
     this.txTimeoutMs = txTimeoutMs;
   }
 
+  private isCacheableReadQuery(action: string): boolean {
+    return [
+      "getActiveAddress",
+      "getAllAddresses",
+      "getWalletNames",
+      "getPermissions",
+    ].includes(action);
+  }
+
+  private getCachedData<T>(action: string, cache: SessionStorageCache): T | null {
+    switch (action) {
+      case "getActiveAddress":
+        return cache.getActiveAddress() as T;
+      case "getAllAddresses":
+        return cache.getAllAddresses() as T;
+      case "getWalletNames":
+        return cache.getWalletNames() as T;
+      case "getPermissions":
+        return cache.getPermissions() as T;
+      default:
+        return null;
+    }
+  }
+
+  private async sendBackgroundRefreshRequest(
+    action: string,
+    payload: any,
+    context: {
+      uid: string | null;
+      client: mqtt.MqttClient | null;
+      publishMessage: (
+        topic: string,
+        message: any,
+        options?: mqtt.IClientPublishOptions
+      ) => Promise<void>;
+    }
+  ): Promise<void> {
+    const correlationData = uuidv4();
+    const topic = context.uid;
+
+    // Set up temporary listener for background refresh
+    const refreshPromise = new Promise<void>((resolve) => {
+      this.responseListeners.set(correlationData, {
+        action,
+        resolve: () => {
+          // Cache will be updated by MessageHandler
+          resolve();
+        },
+      });
+
+      // Shorter timeout for background refresh
+      const timeout = setTimeout(() => {
+        if (this.responseListeners.has(correlationData)) {
+          this.responseListeners.delete(correlationData);
+          resolve(); // Silently resolve even on timeout
+        }
+        this.activeTimeouts.delete(timeout);
+      }, this.responseTimeoutMs);
+
+      this.activeTimeouts.add(timeout);
+    });
+
+    // Send the request
+    if (topic && context.client) {
+      await context.publishMessage(
+        topic,
+        { action, correlationData, ...payload },
+        {
+          properties: {
+            correlationData: Buffer.from(correlationData, "utf-8"),
+          },
+        }
+      ).catch(() => {
+        // Silently fail for background requests
+        this.responseListeners.delete(correlationData);
+      });
+    }
+
+    return refreshPromise;
+  }
+
   public createResponsePromise<T>(
     action: string,
     payload: any = {},
@@ -42,34 +123,39 @@ export class RequestCoordinator {
       cache: SessionStorageCache;
     }
   ): Promise<T> {
+    // Stale-while-revalidate: Check cache first for read-only queries
+    if (this.isCacheableReadQuery(action)) {
+      const cachedData = this.getCachedData<T>(action, context.cache);
+
+      if (cachedData !== null) {
+        // Return cached data immediately for instant response
+        const cachePromise = Promise.resolve(cachedData);
+
+        // If connected, send background request to refresh cache
+        if (
+          context.client &&
+          typeof sessionStorage !== "undefined" &&
+          sessionStorage.getItem("aosync-topic-id")
+        ) {
+          // Fire and forget - don't await
+          this.sendBackgroundRefreshRequest(action, payload, context).catch(
+            (err) => {
+              // Silent fail - we already returned cached data
+              console.warn(`Background refresh failed for ${action}:`, err);
+            }
+          );
+        }
+
+        return cachePromise;
+      }
+    }
+
+    // Handle disconnected state - check cache or queue pending request
     if (
       typeof sessionStorage !== "undefined" &&
       sessionStorage.getItem("aosync-topic-id") &&
       !context.client
     ) {
-      // Check if we have cached data for read-only queries
-      if (action === "getActiveAddress") {
-        const cachedAddress = context.cache.getActiveAddress();
-        if (cachedAddress) {
-          return Promise.resolve(cachedAddress as T);
-        }
-      } else if (action === "getAllAddresses") {
-        const cachedAddresses = context.cache.getAllAddresses();
-        if (cachedAddresses) {
-          return Promise.resolve(cachedAddresses as T);
-        }
-      } else if (action === "getWalletNames") {
-        const cachedNames = context.cache.getWalletNames();
-        if (cachedNames) {
-          return Promise.resolve(cachedNames as T);
-        }
-      } else if (action === "getPermissions") {
-        const cachedPermissions = context.cache.getPermissions();
-        if (cachedPermissions) {
-          return Promise.resolve(cachedPermissions as T);
-        }
-      }
-
       // No cache available, queue as pending request with timeout
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
