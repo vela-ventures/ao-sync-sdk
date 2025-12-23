@@ -10,7 +10,13 @@ import type {
 } from "arconnect";
 import { IClientOptions } from "mqtt";
 import "./fonts";
-import type { Contact, Wallet } from "./types";
+import type {
+  Contact,
+  Wallet,
+  ChainType,
+  AccountType,
+  MultiChainWallet
+} from "./types";
 import { VERSION } from "./constants/version";
 import { EventEmitter } from "./core/EventEmitter";
 import { ModalManager } from "./core/ModalManager";
@@ -109,15 +115,17 @@ export default class WalletClient {
     },
     brokerUrl = "wss://aosync-broker-eu.beaconwallet.dev:8081",
     options = { protocolVersion: 5 },
+    accountType = "arweave",
   }: {
     permissions?: PermissionType[];
     appInfo?: AppInfo;
     gateway?: GatewayConfig;
     brokerUrl?: string;
     options?: IClientOptions;
+    accountType?: AccountType;
   }): Promise<void> {
     return this.connectionManager.connect(
-      { permissions, appInfo, gateway, brokerUrl, options },
+      { permissions, appInfo, gateway, brokerUrl, options, accountType },
       this
     );
   }
@@ -272,6 +280,56 @@ export default class WalletClient {
                        !!sessionStorage.getItem("aosync-topic-id");
     const hasCache = this.messageHandler.getCache().hasActiveAddress();
     return hasTopicId && hasCache;
+  }
+
+  public getAccountType(): AccountType {
+    return this.connectionManager.getAccountType();
+  }
+
+  public getSupportedChains(): ChainType[] {
+    return this.connectionManager.getSupportedChains();
+  }
+
+  public getActiveChain(): ChainType {
+    return this.connectionManager.getActiveChain();
+  }
+
+  public setActiveChain(chain: ChainType): void {
+    const supportedChains = this.getSupportedChains();
+    if (!supportedChains.includes(chain)) {
+      throw new Error(
+        `Chain "${chain}" is not supported for ${this.getAccountType()} account. ` +
+        `Supported chains: ${supportedChains.join(", ")}`
+      );
+    }
+    this.messageHandler.getCache().setActiveChain(chain);
+  }
+
+  public async getMultiChainAddresses(): Promise<MultiChainWallet> {
+    const cached = this.messageHandler.getCache().getMultiChainAddresses();
+    if (cached) {
+      return cached;
+    }
+
+    const currentChain = this.getActiveChain();
+    const chains = this.getSupportedChains();
+    const addresses: MultiChainWallet = {};
+
+    for (const chain of chains) {
+      try {
+        this.setActiveChain(chain);
+        const address = await this.getActiveAddress();
+        addresses[chain] = address;
+      } catch (error) {
+        console.warn(`Failed to get address for chain ${chain}:`, error);
+      }
+    }
+
+    this.setActiveChain(currentChain);
+
+    this.messageHandler.getCache().setMultiChainAddresses(addresses);
+
+    return addresses;
   }
 
   // Event Management

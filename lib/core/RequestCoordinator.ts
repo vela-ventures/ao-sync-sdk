@@ -34,16 +34,16 @@ export class RequestCoordinator {
     ].includes(action);
   }
 
-  private getCachedData<T>(action: string, cache: SessionStorageCache): T | null {
+  private getCachedData<T>(action: string, cache: SessionStorageCache, chain: string = "arweave"): T | null {
     switch (action) {
       case "getActiveAddress":
-        return cache.getActiveAddress() as T;
+        return cache.getActiveAddress(chain as any) as T;
       case "getAllAddresses":
-        return cache.getAllAddresses() as T;
+        return cache.getAllAddresses(chain as any) as T;
       case "getWalletNames":
-        return cache.getWalletNames() as T;
+        return cache.getWalletNames(chain as any) as T;
       case "getPermissions":
-        return cache.getPermissions() as T;
+        return cache.getPermissions(chain as any) as T;
       default:
         return null;
     }
@@ -52,6 +52,7 @@ export class RequestCoordinator {
   private async sendBackgroundRefreshRequest(
     action: string,
     payload: any,
+    chain: string,
     context: {
       uid: string | null;
       client: mqtt.MqttClient | null;
@@ -91,7 +92,7 @@ export class RequestCoordinator {
     if (topic && context.client) {
       await context.publishMessage(
         topic,
-        { action, correlationData, ...payload },
+        { action, correlationData, chain, ...payload },
         {
           properties: {
             correlationData: Buffer.from(correlationData, "utf-8"),
@@ -123,9 +124,11 @@ export class RequestCoordinator {
       cache: SessionStorageCache;
     }
   ): Promise<T> {
+    const chain = context.cache.getActiveChain() || "arweave";
+
     // Stale-while-revalidate: Check cache first for read-only queries
     if (this.isCacheableReadQuery(action)) {
-      const cachedData = this.getCachedData<T>(action, context.cache);
+      const cachedData = this.getCachedData<T>(action, context.cache, chain);
 
       if (cachedData !== null) {
         // Return cached data immediately for instant response
@@ -138,7 +141,7 @@ export class RequestCoordinator {
           sessionStorage.getItem("aosync-topic-id")
         ) {
           // Fire and forget - don't await
-          this.sendBackgroundRefreshRequest(action, payload, context).catch(
+          this.sendBackgroundRefreshRequest(action, payload, chain, context).catch(
             (err) => {
               // Silent fail - we already returned cached data
               console.warn(`Background refresh failed for ${action}:`, err);
@@ -219,7 +222,7 @@ export class RequestCoordinator {
         context
           .publishMessage(
             topic,
-            { action, correlationData, ...payload },
+            { action, correlationData, chain, ...payload },
             {
               properties: {
                 correlationData: Buffer.from(correlationData, "utf-8"),

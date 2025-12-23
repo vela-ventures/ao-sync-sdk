@@ -21,10 +21,24 @@ export interface ReconnectListenerData {
   corellationId: string;
   resolve: (response: any) => void;
 }
+
+export type ChainType = "arweave" | "ethereum" | "base" | "solana" | "ao";
+
+export type AccountType = "arweave" | "multichain";
+
+export interface MultiChainWallet {
+  arweave?: string;
+  ethereum?: string;
+  base?: string;
+  solana?: string;
+  ao?: string;
+}
+
 export interface ConnectionOptions {
   permissions?: PermissionType[];
   appInfo?: AppInfo;
   gateway?: GatewayConfig;
+  accountType?: AccountType;
 }
 
 interface PersonalWallet {

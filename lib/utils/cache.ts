@@ -1,11 +1,15 @@
-import type { ConnectionOptions } from "../types";
+import type { ConnectionOptions, ChainType, AccountType, MultiChainWallet } from "../types";
 
 const CACHE_KEYS = {
-  ACTIVE_ADDRESS: 'aosync-cached-address',
-  ALL_ADDRESSES: 'aosync-cached-all-addresses',
-  WALLET_NAMES: 'aosync-cached-wallet-names',
-  PERMISSIONS: 'aosync-cached-permissions',
+  activeAddress: (chain: ChainType) => `aosync-cached-address-${chain}`,
+  allAddresses: (chain: ChainType) => `aosync-cached-all-addresses-${chain}`,
+  walletNames: (chain: ChainType) => `aosync-cached-wallet-names-${chain}`,
+  permissions: (chain: ChainType) => `aosync-cached-permissions-${chain}`,
+
   CONNECT_OPTIONS: 'aosync-cached-connect-options',
+  ACCOUNT_TYPE: 'aosync-cached-account-type',
+  ACTIVE_CHAIN: 'aosync-active-chain',
+  MULTICHAIN_ADDRESSES: 'aosync-cached-multichain-addresses',
 } as const;
 
 export class SessionStorageCache {
@@ -13,19 +17,19 @@ export class SessionStorageCache {
     return typeof sessionStorage !== 'undefined';
   }
 
-  public getActiveAddress(): string | null {
+  public getActiveAddress(chain: ChainType = "arweave"): string | null {
     if (!this.isAvailable()) return null;
-    return sessionStorage.getItem(CACHE_KEYS.ACTIVE_ADDRESS);
+    return sessionStorage.getItem(CACHE_KEYS.activeAddress(chain));
   }
 
-  public setActiveAddress(address: string): void {
+  public setActiveAddress(address: string, chain: ChainType = "arweave"): void {
     if (!this.isAvailable()) return;
-    sessionStorage.setItem(CACHE_KEYS.ACTIVE_ADDRESS, address);
+    sessionStorage.setItem(CACHE_KEYS.activeAddress(chain), address);
   }
 
-  public getAllAddresses(): string[] | null {
+  public getAllAddresses(chain: ChainType = "arweave"): string[] | null {
     if (!this.isAvailable()) return null;
-    const cached = sessionStorage.getItem(CACHE_KEYS.ALL_ADDRESSES);
+    const cached = sessionStorage.getItem(CACHE_KEYS.allAddresses(chain));
     if (!cached) return null;
     try {
       return JSON.parse(cached);
@@ -34,14 +38,14 @@ export class SessionStorageCache {
     }
   }
 
-  public setAllAddresses(addresses: string[]): void {
+  public setAllAddresses(addresses: string[], chain: ChainType = "arweave"): void {
     if (!this.isAvailable()) return;
-    sessionStorage.setItem(CACHE_KEYS.ALL_ADDRESSES, JSON.stringify(addresses));
+    sessionStorage.setItem(CACHE_KEYS.allAddresses(chain), JSON.stringify(addresses));
   }
 
-  public getWalletNames(): { [addr: string]: string } | null {
+  public getWalletNames(chain: ChainType = "arweave"): { [addr: string]: string } | null {
     if (!this.isAvailable()) return null;
-    const cached = sessionStorage.getItem(CACHE_KEYS.WALLET_NAMES);
+    const cached = sessionStorage.getItem(CACHE_KEYS.walletNames(chain));
     if (!cached) return null;
     try {
       return JSON.parse(cached);
@@ -50,14 +54,14 @@ export class SessionStorageCache {
     }
   }
 
-  public setWalletNames(names: { [addr: string]: string }): void {
+  public setWalletNames(names: { [addr: string]: string }, chain: ChainType = "arweave"): void {
     if (!this.isAvailable()) return;
-    sessionStorage.setItem(CACHE_KEYS.WALLET_NAMES, JSON.stringify(names));
+    sessionStorage.setItem(CACHE_KEYS.walletNames(chain), JSON.stringify(names));
   }
 
-  public getPermissions(): string[] | null {
+  public getPermissions(chain: ChainType = "arweave"): string[] | null {
     if (!this.isAvailable()) return null;
-    const cached = sessionStorage.getItem(CACHE_KEYS.PERMISSIONS);
+    const cached = sessionStorage.getItem(CACHE_KEYS.permissions(chain));
     if (!cached) return null;
     try {
       return JSON.parse(cached);
@@ -66,9 +70,9 @@ export class SessionStorageCache {
     }
   }
 
-  public setPermissions(permissions: string[]): void {
+  public setPermissions(permissions: string[], chain: ChainType = "arweave"): void {
     if (!this.isAvailable()) return;
-    sessionStorage.setItem(CACHE_KEYS.PERMISSIONS, JSON.stringify(permissions));
+    sessionStorage.setItem(CACHE_KEYS.permissions(chain), JSON.stringify(permissions));
   }
 
   public getConnectOptions(): ConnectionOptions | null {
@@ -87,16 +91,60 @@ export class SessionStorageCache {
     sessionStorage.setItem(CACHE_KEYS.CONNECT_OPTIONS, JSON.stringify(options));
   }
 
-  public clear(): void {
-    if (!this.isAvailable()) return;
-    sessionStorage.removeItem(CACHE_KEYS.ACTIVE_ADDRESS);
-    sessionStorage.removeItem(CACHE_KEYS.ALL_ADDRESSES);
-    sessionStorage.removeItem(CACHE_KEYS.WALLET_NAMES);
-    sessionStorage.removeItem(CACHE_KEYS.PERMISSIONS);
-    sessionStorage.removeItem(CACHE_KEYS.CONNECT_OPTIONS);
+  public getMultiChainAddresses(): MultiChainWallet | null {
+    if (!this.isAvailable()) return null;
+    const cached = sessionStorage.getItem(CACHE_KEYS.MULTICHAIN_ADDRESSES);
+    if (!cached) return null;
+    try {
+      return JSON.parse(cached);
+    } catch {
+      return null;
+    }
   }
 
-  public hasActiveAddress(): boolean {
-    return this.getActiveAddress() !== null;
+  public setMultiChainAddresses(addresses: MultiChainWallet): void {
+    if (!this.isAvailable()) return;
+    sessionStorage.setItem(CACHE_KEYS.MULTICHAIN_ADDRESSES, JSON.stringify(addresses));
+  }
+
+  public getAccountType(): AccountType | null {
+    if (!this.isAvailable()) return null;
+    return sessionStorage.getItem(CACHE_KEYS.ACCOUNT_TYPE) as AccountType;
+  }
+
+  public setAccountType(type: AccountType): void {
+    if (!this.isAvailable()) return;
+    sessionStorage.setItem(CACHE_KEYS.ACCOUNT_TYPE, type);
+  }
+
+  public getActiveChain(): ChainType | null {
+    if (!this.isAvailable()) return null;
+    return sessionStorage.getItem(CACHE_KEYS.ACTIVE_CHAIN) as ChainType;
+  }
+
+  public setActiveChain(chain: ChainType): void {
+    if (!this.isAvailable()) return;
+    sessionStorage.setItem(CACHE_KEYS.ACTIVE_CHAIN, chain);
+  }
+
+  public clear(): void {
+    if (!this.isAvailable()) return;
+
+    const chains: ChainType[] = ["arweave", "ethereum", "base", "solana", "ao"];
+    chains.forEach(chain => {
+      sessionStorage.removeItem(CACHE_KEYS.activeAddress(chain));
+      sessionStorage.removeItem(CACHE_KEYS.allAddresses(chain));
+      sessionStorage.removeItem(CACHE_KEYS.walletNames(chain));
+      sessionStorage.removeItem(CACHE_KEYS.permissions(chain));
+    });
+
+    sessionStorage.removeItem(CACHE_KEYS.CONNECT_OPTIONS);
+    sessionStorage.removeItem(CACHE_KEYS.ACCOUNT_TYPE);
+    sessionStorage.removeItem(CACHE_KEYS.ACTIVE_CHAIN);
+    sessionStorage.removeItem(CACHE_KEYS.MULTICHAIN_ADDRESSES);
+  }
+
+  public hasActiveAddress(chain: ChainType = "arweave"): boolean {
+    return this.getActiveAddress(chain) !== null;
   }
 }

@@ -3,7 +3,11 @@ import { v4 as uuidv4 } from "uuid";
 import QRCode from "qrcode";
 import { Buffer } from "buffer";
 import type { PermissionType, GatewayConfig, AppInfo } from "arconnect";
-import { ConnectionOptions } from "../types";
+import {
+  ConnectionOptions,
+  AccountType,
+  ChainType,
+} from "../types";
 import { ModalManager } from "./ModalManager";
 import { MessageHandler } from "./MessageHandler";
 import { RequestCoordinator } from "./RequestCoordinator";
@@ -68,18 +72,23 @@ export class MqttConnectionManager {
       },
       brokerUrl = "wss://aosync-broker-eu.beaconwallet.dev:8081",
       options = { protocolVersion: 5 },
+      accountType = "arweave",
     }: {
       permissions?: PermissionType[];
       appInfo?: AppInfo;
       gateway?: GatewayConfig;
       brokerUrl?: string;
       options?: IClientOptions;
+      accountType?: AccountType;
     },
     walletClient: any
   ): Promise<void> {
     if (this.isConnected) return;
     if (this.client) {
-      const qrCodeData = await QRCode.toDataURL("aosync=" + this.uid, this.getQRCodeOptions());
+      const qrCodeData = await QRCode.toDataURL(
+        "aosync=" + this.uid,
+        this.getQRCodeOptions()
+      );
       this.modalManager.createConnectionModal(qrCodeData, walletClient);
       console.warn("Already connected to the broker.");
       return;
@@ -108,8 +117,15 @@ export class MqttConnectionManager {
     }
 
     const responseChannel = `${this.uid}/response`;
+
+    const qrData = {
+      v: 1,
+      uid: this.uid,
+      accountType,
+    };
+
     const qrCodeData = await QRCode.toDataURL(
-      "aosync=" + this.uid,
+      "aosync=" + btoa(JSON.stringify(qrData)),
       this.getQRCodeOptions()
     );
 
@@ -121,10 +137,15 @@ export class MqttConnectionManager {
       permissions,
       appInfo,
       gateway,
+      accountType,
     };
 
-    // Cache connect options for reconnection after page reload
-    this.messageHandler.getCache().setConnectOptions(this.connectOptions);
+    const cache = this.messageHandler.getCache();
+    cache.setConnectOptions(this.connectOptions);
+    cache.setAccountType(accountType);
+
+    const defaultChain = accountType === "multichain" ? "ethereum" : "arweave";
+    cache.setActiveChain(defaultChain);
 
     return new Promise((resolve, reject) => {
       this.connectionListener = (response) => {
@@ -164,7 +185,8 @@ export class MqttConnectionManager {
               setConnected: (value: boolean) => {
                 this.isConnected = value;
               },
-              processPendingRequests: async () => walletClient.processPendingRequests(),
+              processPendingRequests: async () =>
+                walletClient.processPendingRequests(),
             })
           );
         } catch (err) {
@@ -222,7 +244,7 @@ export class MqttConnectionManager {
                 correlationData: Buffer.from(correlationData, "utf-8"),
               },
             }
-          ).catch(err => console.warn("Background refresh failed:", err));
+          ).catch((err) => console.warn("Background refresh failed:", err));
 
           return Promise.resolve();
         }
@@ -290,12 +312,14 @@ export class MqttConnectionManager {
                   isConnected: this.isConnected,
                   connectOptions: this.connectOptions,
                   publishMessage: this.publishMessage.bind(this),
-                  populateWindowObject: () => walletClient.populateWindowObject(),
+                  populateWindowObject: () =>
+                    walletClient.populateWindowObject(),
                   disconnect: async () => walletClient.disconnect(),
                   setConnected: (value: boolean) => {
                     this.isConnected = value;
                   },
-                  processPendingRequests: async () => walletClient.processPendingRequests(),
+                  processPendingRequests: async () =>
+                    walletClient.processPendingRequests(),
                 })
               );
 
@@ -303,13 +327,16 @@ export class MqttConnectionManager {
               const correlationData = uuidv4();
               this.publishMessage(
                 this.uid,
-                { action: "getActiveAddress", correlationData: correlationData },
+                {
+                  action: "getActiveAddress",
+                  correlationData: correlationData,
+                },
                 {
                   properties: {
                     correlationData: Buffer.from(correlationData, "utf-8"),
                   },
                 }
-              ).catch(err => console.warn("Background refresh failed:", err));
+              ).catch((err) => console.warn("Background refresh failed:", err));
 
               resolve();
             } catch (err) {
@@ -371,7 +398,8 @@ export class MqttConnectionManager {
                 setConnected: (value: boolean) => {
                   this.isConnected = value;
                 },
-                processPendingRequests: async () => walletClient.processPendingRequests(),
+                processPendingRequests: async () =>
+                  walletClient.processPendingRequests(),
               })
             );
           } catch (err) {
@@ -487,5 +515,23 @@ export class MqttConnectionManager {
     if (this.connectionListener) {
       this.connectionListener(response);
     }
+  }
+
+  public getAccountType(): AccountType {
+    return this.connectOptions?.accountType || "arweave";
+  }
+
+  public getSupportedChains(): ChainType[] {
+    if (this.connectOptions?.accountType === "multichain") {
+      return ["ethereum", "base", "solana"];
+    }
+    return ["arweave", "ao"];
+  }
+
+  public getActiveChain(): ChainType {
+    const cached = this.messageHandler.getCache().getActiveChain();
+    if (cached) return cached;
+
+    return this.connectOptions?.accountType === "multichain" ? "ethereum" : "arweave";
   }
 }

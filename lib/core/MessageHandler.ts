@@ -93,14 +93,16 @@ export class MessageHandler {
         "getPermissions"
       ].includes(listenerData.action);
 
+      const chain = (messageData as any).chain || "arweave";
+
       if (listenerData.action === "getActiveAddress" && typeof messageData.data === 'string') {
-        this.cache.setActiveAddress(messageData.data);
+        this.cache.setActiveAddress(messageData.data, chain);
       } else if (listenerData.action === "getAllAddresses" && Array.isArray(messageData.data)) {
-        this.cache.setAllAddresses(messageData.data);
+        this.cache.setAllAddresses(messageData.data, chain);
       } else if (listenerData.action === "getWalletNames" && typeof messageData.data === 'object') {
-        this.cache.setWalletNames(messageData.data);
+        this.cache.setWalletNames(messageData.data, chain);
       } else if (listenerData.action === "getPermissions" && Array.isArray(messageData.data)) {
-        this.cache.setPermissions(messageData.data);
+        this.cache.setPermissions(messageData.data, chain);
       }
 
       if (isCacheableQuery) {
