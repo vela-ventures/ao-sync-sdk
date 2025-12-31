@@ -22,6 +22,13 @@ export interface ReconnectListenerData {
   resolve: (response: any) => void;
 }
 
+export interface TypedDataParams {
+  domain: Record<string, any>;
+  types: Record<string, any>;
+  primaryType: string;
+  message: Record<string, any>;
+}
+
 export type ChainType = "arweave" | "ethereum" | "base" | "solana" | "ao";
 
 export type AccountType = "arweave" | "multichain";

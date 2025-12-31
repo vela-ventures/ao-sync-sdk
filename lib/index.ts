@@ -15,7 +15,8 @@ import type {
   Wallet,
   ChainType,
   AccountType,
-  MultiChainWallet
+  MultiChainWallet,
+  TypedDataParams,
 } from "./types";
 import { VERSION } from "./constants/version";
 import { EventEmitter } from "./core/EventEmitter";
@@ -216,6 +217,9 @@ export default class WalletClient {
     return Promise.resolve(config);
   }
 
+  /**
+   * @deprecated Use signMessage() instead
+   */
   public async signature(
     data: Uint8Array,
     algorithm?: AlgorithmIdentifier | RsaPssParams | EcdsaParams
@@ -232,17 +236,50 @@ export default class WalletClient {
     return this.createResponsePromise("addToken", { data: id });
   }
 
-  // Transaction Methods
+  // Transaction Methods (Arweave/AO specific)
+  /**
+   * @deprecated Use signTransaction() instead
+   */
   public async sign(transaction: Transaction): Promise<Transaction> {
     return this.createResponsePromise("sign", { transaction });
   }
 
+  /**
+   * @deprecated Use sendTransaction() instead
+   */
   public async dispatch(transaction: Transaction): Promise<DispatchResult> {
     return this.createResponsePromise("dispatch", { transaction });
   }
 
   public async signDataItem(dataItem: DataItem): Promise<ArrayBuffer> {
     return this.createResponsePromise("signDataItem", { dataItem });
+  }
+
+  public async signMessage(message: string | Uint8Array): Promise<string> {
+    const messageData = typeof message === "string" ? message : message.toString();
+    return this.createResponsePromise("signMessage", { message: messageData });
+  }
+
+  public async signTransaction(transaction: any): Promise<any> {
+    return this.createResponsePromise("signTransaction", { transaction });
+  }
+
+  public async sendTransaction(transaction: any): Promise<string> {
+    return this.createResponsePromise("sendTransaction", { transaction });
+  }
+
+  /**
+   * Sign EIP-712 typed data. Only works on Ethereum and Base chains.
+   */
+  public async signTypedData(params: TypedDataParams): Promise<string> {
+    const activeChain = this.getActiveChain();
+    if (activeChain !== "ethereum" && activeChain !== "base") {
+      throw new Error(
+        `signTypedData is only supported on EVM chains (ethereum, base). ` +
+        `Current active chain: ${activeChain}`
+      );
+    }
+    return this.createResponsePromise("signTypedData", params);
   }
 
   // Account Management Methods
@@ -302,7 +339,19 @@ export default class WalletClient {
         `Supported chains: ${supportedChains.join(", ")}`
       );
     }
+    const previousChain = this.getActiveChain();
     this.messageHandler.getCache().setActiveChain(chain);
+
+    if (previousChain !== chain) {
+      this.eventEmitter.emit("chainChanged", {
+        previousChain,
+        currentChain: chain
+      });
+    }
+  }
+
+  public switchChain(chain: ChainType): void {
+    this.setActiveChain(chain);
   }
 
   public async getMultiChainAddresses(): Promise<MultiChainWallet> {
