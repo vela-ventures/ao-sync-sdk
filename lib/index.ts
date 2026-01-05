@@ -413,3 +413,5 @@ export default class WalletClient {
     await this.requestCoordinator.processPendingRequests(this);
   }
 }
+
+export type { ChainType, AccountType, MultiChainWallet, TypedDataParams, Contact, Wallet } from "./types";
