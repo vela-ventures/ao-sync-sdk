@@ -202,7 +202,7 @@ export class RequestCoordinator {
     const correlationData = uuidv4();
     const topic = context.uid;
 
-    const isTransaction = ["sign", "dispatch", "signDataItem"].includes(action);
+    const isTransaction = ["sign", "dispatch", "signDataItem", "sendTransaction", "signTransaction","signTypedData", "signMessage"].includes(action);
     const timeoutDuration = isTransaction
       ? this.txTimeoutMs
       : this.responseTimeoutMs;

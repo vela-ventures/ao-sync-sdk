@@ -81,7 +81,7 @@ export class MessageHandler {
     const responseListeners = this.requestCoordinator.getResponseListeners();
     if (correlationId && responseListeners.has(correlationId)) {
       const listenerData = responseListeners.get(correlationId)!;
-      const isTransaction = ["sign", "dispatch", "signDataItem"].includes(
+      const isTransaction = ["sign", "dispatch", "signDataItem", "sendTransaction", "signTransaction","signTypedData", "signMessage"].includes(
         listenerData.action
       );
 
