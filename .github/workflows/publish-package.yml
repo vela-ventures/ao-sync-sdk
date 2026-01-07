@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*.*.*"
+      - "v*.*.*-*"
 
 env:
   NODE_VERSION: "18.19.0"
@@ -28,5 +29,18 @@ jobs:
           npm ci
           npm run build -- --watch=false
 
+      - name: Determine npm tag
+        id: npm-tag
+        run: |
+          if [[ "${GITHUB_REF#refs/tags/}" == *"-next"* ]]; then
+            echo "tag=next" >> $GITHUB_OUTPUT
+          elif [[ "${GITHUB_REF#refs/tags/}" == *"-alpha"* ]]; then
+            echo "tag=alpha" >> $GITHUB_OUTPUT
+          elif [[ "${GITHUB_REF#refs/tags/}" == *"-beta"* ]]; then
+            echo "tag=beta" >> $GITHUB_OUTPUT
+          else
+            echo "tag=latest" >> $GITHUB_OUTPUT
+          fi
+
       - name: Publish
-        run: npm publish
+        run: npm publish --tag ${{ steps.npm-tag.outputs.tag }}
