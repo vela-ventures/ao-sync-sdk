@@ -93,7 +93,7 @@ export class MessageHandler {
         "getPermissions"
       ].includes(listenerData.action);
 
-      const chain = (messageData as any).chain || "arweave";
+      const chain = (messageData as any).chain || "ethereum";
 
       if (listenerData.action === "getActiveAddress" && typeof messageData.data === 'string') {
         this.cache.setActiveAddress(messageData.data, chain);
