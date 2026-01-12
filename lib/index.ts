@@ -255,17 +255,26 @@ export default class WalletClient {
     return this.createResponsePromise("signDataItem", { dataItem });
   }
 
-  public async signMessage(message: string | Uint8Array): Promise<string> {
+  public async signMessage(message: string | Uint8Array, chain?: ChainType): Promise<string> {
     const messageData = typeof message === "string" ? message : message.toString();
-    return this.createResponsePromise("signMessage", { message: messageData });
+    return this.createResponsePromise("signMessage", {
+      message: messageData,
+      ...(chain && { chain })
+    });
   }
 
-  public async signTransaction(transaction: any): Promise<any> {
-    return this.createResponsePromise("signTransaction", { transaction });
+  public async signTransaction(transaction: any, chain?: ChainType): Promise<any> {
+    return this.createResponsePromise("signTransaction", {
+      transaction,
+      ...(chain && { chain })
+    });
   }
 
-  public async sendTransaction(transaction: any): Promise<string> {
-    return this.createResponsePromise("sendTransaction", { transaction });
+  public async sendTransaction(transaction: any, chain?: ChainType): Promise<string> {
+    return this.createResponsePromise("sendTransaction", {
+      transaction,
+      ...(chain && { chain })
+    });
   }
 
   /**
