@@ -165,8 +165,10 @@ export default class WalletClient {
   }
 
   // Wallet Info Query Methods
-  public async getActiveAddress(): Promise<string> {
-    return this.createResponsePromise("getActiveAddress");
+  public async getActiveAddress(chain?: ChainType): Promise<string> {
+    return this.createResponsePromise("getActiveAddress", {
+      ...(chain && { chain })
+    });
   }
 
   public async getAllAddresses(): Promise<string[]> {
@@ -369,21 +371,17 @@ export default class WalletClient {
       return cached;
     }
 
-    const currentChain = this.getActiveChain();
     const chains = this.getSupportedChains();
     const addresses: MultiChainWallet = {};
 
     for (const chain of chains) {
       try {
-        this.setActiveChain(chain);
-        const address = await this.getActiveAddress();
+        const address = await this.getActiveAddress(chain);
         addresses[chain] = address;
       } catch (error) {
         console.warn(`Failed to get address for chain ${chain}:`, error);
       }
     }
-
-    this.setActiveChain(currentChain);
 
     this.messageHandler.getCache().setMultiChainAddresses(addresses);
 
