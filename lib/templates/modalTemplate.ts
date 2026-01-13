@@ -61,7 +61,7 @@ export const createModalTemplate = ({
      <div style="${objectToInlineStyle(modalStyles.iconContainer)}">
       ${ICONS.qrCode.scanner}
      </div>
-     <h3 style="${objectToInlineStyle(modalStyles.title)}">AOSync</h3>
+     <h3 style="${objectToInlineStyle(modalStyles.title)}">Beacon connect</h3>
      <div style="${objectToInlineStyle(modalStyles.subtitle)}">${subTitle}</div>
      ${
        qrCodeData

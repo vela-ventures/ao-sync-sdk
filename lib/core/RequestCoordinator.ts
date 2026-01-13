@@ -209,7 +209,7 @@ export class RequestCoordinator {
 
     return new Promise((resolve, reject) => {
       if (!context.client) {
-        reject(new Error(`Not connected to AOSync`));
+        reject(new Error(`Not connected to Beacon`));
         return;
       }
 

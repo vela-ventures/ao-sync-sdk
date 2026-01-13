@@ -1,6 +1,6 @@
 {
   "name": "@vela-ventures/ao-sync-sdk",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "JavaScript SDK for Beacon wallet",
   "main": "./dist/cjs/index.js",
   "module": "dist/esm/index.js",
