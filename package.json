@@ -1,6 +1,6 @@
 {
   "name": "@vela-ventures/ao-sync-sdk",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "JavaScript SDK for Beacon wallet",
   "main": "./dist/cjs/index.js",
   "module": "dist/esm/index.js",
@@ -18,9 +18,10 @@
   "scripts": {
     "build:esm": "tsc --project tsconfig.json",
     "build:cjs": "tsc --project tsconfig.cjs.json",
-    "build": "rm -rf dist && npm run generate-version && npm run build:esm && npm run build:cjs",
+    "build": "rm -rf dist && npm run generate-version && npm run build:esm && npm run build:cjs && npm run copy-assets",
     "dev": "tsc --watch",
-    "generate-version": "node scripts/generate-version.js"
+    "generate-version": "node scripts/generate-version.js",
+    "copy-assets": "node scripts/copy-assets.js"
   },
   "repository": {
     "type": "git",

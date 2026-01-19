@@ -21,10 +21,9 @@ export const modalStyles: any = {
   },
 
   content: {
-    background: "white",
+    background: "oklch(0.98 0 0)",
     borderRadius: "16px",
-    padding: "28px",
-    paddingTop: "47px",
+    padding: "24px",
     textAlign: "center",
     minWidth: "364px",
     maxWidth: "364px",
@@ -32,18 +31,15 @@ export const modalStyles: any = {
     justifyContent: "center",
     flexDirection: "column",
     alignItems: "center",
-    backgroundRepeat: "no-repeat",
     zIndex: "10",
     boxSizing: "border-box",
-    backgroundImage:
-      "url(https://arweave.net/zNeeL2prnXwctfwCo07xyhT8ob-M6F70RgYObK51Y90)",
   },
 
   iconContainer: {
     width: "50px",
     height: "50px",
     borderRadius: "50%",
-    backgroundColor: "#F7FAFD",
+    backgroundColor: "oklch(0.95 0.01 264)",
     marginBottom: "12px",
     display: "flex",
     justifyContent: "center",
@@ -51,24 +47,27 @@ export const modalStyles: any = {
   },
 
   title: {
-    color: "#000",
+    color: "oklch(0.2 0 0)",
     fontSize: "18px",
-    fontWeight: "500",
+    fontWeight: "400",
     marginBottom: "5px",
     marginTop: "0px",
-    fontFamily: "Sora",
+    fontFamily: "ABC Diatype Variable Unlicensed Trial, sans-serif",
   },
 
   subtitle: {
     fontSize: "14px",
-    color: "#2B2B2B",
+    fontWeight: "300",
+    color: "oklch(0.4 0.01 264)",
     marginBottom: "2px",
+    fontFamily: "ABC Diatype Variable Unlicensed Trial, sans-serif",
   },
 
   description: {
     fontSize: "11px",
-    color: "#2B2B2B",
-    fontFamily: "Sora",
+    fontWeight: "300",
+    color: "oklch(0.4 0.01 264)",
+    fontFamily: "ABC Diatype Variable Unlicensed Trial, sans-serif",
   },
 
   statusMark: {
@@ -83,24 +82,23 @@ export const modalStyles: any = {
   },
 
   modalLink: {
-    color: "#09084B",
+    color: "oklch(0.45 0.25 264)",
   },
 };
 
 if (
-  typeof window !== "undefined" &&
-  window?.matchMedia &&
-  window?.matchMedia("(prefers-color-scheme: dark)").matches
+  true
+  // typeof window !== "undefined" &&
+  // window?.matchMedia &&
+  // window?.matchMedia("(prefers-color-scheme: dark)").matches
 ) {
-  modalStyles.content.backgroundImage =
-    "url(https://arweave.net/fqogTk0hEVP6YXgMsfsucioYUfOd4gVHHJvd8pG-Dg4)";
-  modalStyles.content.backgroundColor = "#0A0B19";
-  modalStyles.iconContainer.backgroundColor = "#232330";
-  modalStyles.title.color = "#ffffff";
-  modalStyles.description.color = "#ffffff";
-  modalStyles.subtitle.color = "#84858C";
-  modalStyles.modalLink.color = "#4969FF";
-  modalStyles.backdrop.backgroundColor = "rgba(0, 0, 0, 0.3)";
+  modalStyles.content.backgroundColor = "oklch(0.145 0 0)";
+  modalStyles.iconContainer.backgroundColor = "oklch(0.205 0 0)";
+  modalStyles.title.color = "oklch(0.985 0 0)";
+  modalStyles.description.color = "oklch(0.6 0.01 264)";
+  modalStyles.subtitle.color = "oklch(0.6 0.01 264)";
+  modalStyles.modalLink.color = "oklch(0.985 0 0)";
+  modalStyles.backdrop.backgroundColor = "rgba(0, 0, 0, 0.8)";
 }
 
 export const mobileStylesCSS = `
@@ -109,12 +107,11 @@ export const mobileStylesCSS = `
         width: 100% !important;
         min-width: 100% !important;
         margin: 0 !important;
-        border-radius: 16px 16px 0 0 !important;
+        border-radius: 12px 12px 0 0 !important;
         position: fixed !important;
         bottom: 0 !important;
         max-height: 90vh !important;
         overflow-y: auto !important;
-        background-size: 100% !important;
       }
       #aosync-modal {
         align-items: flex-end !important;

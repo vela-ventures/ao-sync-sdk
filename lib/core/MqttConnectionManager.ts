@@ -42,7 +42,7 @@ export class MqttConnectionManager {
   private getQRCodeOptions() {
     if (this.isDarkMode) {
       return {
-        color: { dark: "#FFFFFF", light: "#0A0B19" },
+        color: { dark: "#FFFFFF", light: "#0a0a0a" },
       };
     }
     return {

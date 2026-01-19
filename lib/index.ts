@@ -53,7 +53,7 @@ export default class WalletClient {
       const userAgent = window.navigator.userAgent;
       this.isAppleMobileDevice = /iPad|iPhone|iPod/.test(userAgent);
       this.isInappBrowser = !!window["beaconwallet"]?.version;
-      this.isDarkMode =
+      this.isDarkMode = true ||
         window?.matchMedia &&
         window?.matchMedia("(prefers-color-scheme: dark)").matches;
       window.__AOSYNC_VERSION__ = VERSION;

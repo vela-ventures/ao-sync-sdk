@@ -54,7 +54,6 @@ export const createModalTemplate = ({
 
   const content = document.createElement("div");
   Object.assign(content.style, modalStyles.content);
-  content.style.setProperty("font-family", "Sora", "important");
   content.id = "aosync-modal-content";
 
   content.innerHTML = `
